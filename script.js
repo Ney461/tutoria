@@ -1262,124 +1262,51 @@ try {
 })();
 
 // ======== GESTIÓN DE QUIZ AUTOMÁTICO ========
-/**
- * Genera 2 preguntas de opción múltiple basadas en la CONVERSACIÓN ACTUAL
- * @returns {Promise<Array>} Array con 2 preguntas, cada una con 5 opciones
- */
-async function generateAutoQuiz() {
-    try {
-        // Obtener los últimos mensajes de la conversación para contexto
-        const recentMessages = messages.slice(-6); // Últimos 3 intercambios
-        const conversationContext = recentMessages
-            .map(m => `${m.role === 'user' ? 'Estudiante' : 'TutorIA'}: ${m.content}`)
-            .join('\n\n');
-
-        const prompt = `Basándote EXACTAMENTE en esta conversación educativa, crea 2 PREGUNTAS de opción múltiple que verifiquen la comprensión real del estudiante:
-
-CONVERSACIÓN:
-${conversationContext}
-
-INSTRUCCIONES:
-- Las preguntas DEBEN referirse a conceptos ESPECÍFICOS mencionados en la conversación
-- Cada pregunta tiene 5 opciones (a, b, c, d, e)
-- Las opciones incorrectas deben ser ENGAÑOSAS pero relacionadas:
-  * Conceptos similares pero incorrectos
-  * Medias verdades de la conversación
-  * Errores comunes en el tema
-  * Una opción claramente correcta (basada directamente en la explicación)
-
-NO HAGAS preguntas genéricas. Deben ser ESPECÍFICAS del contenido discutido.
-
-Responde SOLO en JSON (sin explicaciones):
-{
-  "questions": [
-    {
-      "question": "Pregunta 1 específica sobre la conversación",
-      "options": {
-        "a": "Opción engañosa 1",
-        "b": "Opción engañosa 2",
-        "c": "RESPUESTA CORRECTA (directa de la explicación)",
-        "d": "Opción engañosa 3",
-        "e": "Opción engañosa 4"
-      },
-      "correct": "c"
-    },
-    {
-      "question": "Pregunta 2 sobre otro aspecto de la conversación",
-      "options": {
-        "a": "RESPUESTA CORRECTA",
-        "b": "Opción engañosa 1",
-        "c": "Opción engañosa 2",
-        "d": "Opción engañosa 3",
-        "e": "Opción engañosa 4"
-      },
-      "correct": "a"
-    }
-  ]
-}`;
-
-        const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${getCurrentApiKey()}`,
-                "Content-Type": "application/json",
-                "HTTP-Referer": window.location.origin,
-                "X-Title": "TutorIA-Quiz"
-            },
-            body: JSON.stringify({
-                model: MODEL,
-                messages: [
-                    { role: 'user', content: prompt }
-                ],
-                temperature: 0.6,
-                max_tokens: 700
-            })
-        });
-
-        const data = await res.json();
-        const responseText = data.choices[0]?.message?.content || '{}';
-        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-        const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : '{"questions":[]}');
-        return parsed.questions || [];
-    } catch (err) {
-        console.warn('Error generando quiz automático', err);
-        return [];
-    }
-}
 
 /**
- * Muestra diálogo de opciones (Quiz o Explicación propia)
- */
-// ======== SISTEMA DE QUIZ Y EXPLICACIÓN ========
-
-/**
- * Genera un quiz automático basado en el tema de la conversación
+ * Genera un quiz automático basado en el contexto REAL de la conversación
  * @param {string} topic - Tema del quiz
- * @returns {Promise<Array>} Array de objetos quiz
+ * @returns {Promise<Array>} Array de 2 objetos quiz basados en la conversación
  */
 async function generateAutoQuiz(topic) {
     try {
         console.log('🎯 [QUIZ] Generando quiz automático sobre:', topic);
         
-        const quizPrompt = `Genera EXACTAMENTE 2 preguntas de opción múltiple sobre "${topic}".
-Formato ESTRICTO (debe ser exactamente así):
-QUIZ 1:
-Pregunta: [Tu pregunta aquí]
-a) [Opción correcta]
-b) [Opción incorrecta]
-c) [Opción incorrecta]
-d) [Opción incorrecta]
-Respuesta: a
+        // Obtener contexto de la CONVERSACIÓN REAL
+        const recentMessages = messages.slice(-6); // Últimos 3 intercambios
+        const conversationContext = recentMessages
+            .map(m => `${m.role === 'user' ? 'Estudiante' : 'TutorIA'}: ${m.content.substring(0, 200)}`)
+            .join('\n\n');
+        
+        const quizPrompt = `Eres un profesor experto. Basándote en ESTA CONVERSACIÓN REAL sobre "${topic}", 
+genera EXACTAMENTE 2 preguntas de opción múltiple que verifiquen la comprensión específica de lo discutido.
 
-QUIZ 2:
-Pregunta: [Tu pregunta aquí]
-a) [Opción incorrecta]
-b) [Opción correcta]
-c) [Opción incorrecta]
-d) [Opción incorrecta]
+CONVERSACIÓN:
+${conversationContext}
+
+INSTRUCCIONES:
+- Preguntas ESPECÍFICAS basadas en conceptos mencionados en la conversación (no genéricas)
+- Opciones incorrectas deben ser ENGAÑOSAS pero relacionadas (errores comunes, conceptos similares)
+- 4 opciones por pregunta (a, b, c, d)
+
+Formato EXACTO:
+QUIZ 1:
+Pregunta: [pregunta específica sobre la conversación]
+a) [opción engañosa]
+b) [RESPUESTA CORRECTA - directa de la conversación]
+c) [opción engañosa]
+d) [opción engañosa]
 Respuesta: b
 
-Sé pedagógico y diferencia entre correcta e incorrectas. Responde SOLO con el formato anterior.`;
+QUIZ 2:
+Pregunta: [otra pregunta específica]
+a) [RESPUESTA CORRECTA]
+b) [opción engañosa]
+c) [opción engañosa]
+d) [opción engañosa]
+Respuesta: a
+
+Responde SOLO en este formato exacto.`;
 
         const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
@@ -1392,15 +1319,15 @@ Sé pedagógico y diferencia entre correcta e incorrectas. Responde SOLO con el 
                 messages: [
                     { 
                         role: "system", 
-                        content: "Eres un profesor de primaria que crea quices educativos. Responde EXACTAMENTE en el formato solicitado." 
+                        content: "Eres un profesor pedagógico experto que crea preguntas específicas basadas en conversaciones reales. Creas quices que evalúan comprensión real, no memorización genérica."
                     },
                     { 
                         role: "user", 
                         content: quizPrompt 
                     }
                 ],
-                temperature: 0.7,
-                max_tokens: 400
+                temperature: 0.6,
+                max_tokens: 500
             })
         });
 
@@ -1411,8 +1338,9 @@ Sé pedagógico y diferencia entre correcta e incorrectas. Responde SOLO con el 
 
         const data = await res.json();
         const quizText = data.choices[0]?.message?.content || '';
+        console.log('📝 [QUIZ] Respuesta IA:', quizText.substring(0, 200));
         
-        // Parsear las 2 preguntas del formato
+        // Parsear las 2 preguntas del formato EXACTO
         const quizzes = [];
         const quizMatches = quizText.match(/QUIZ \d+:([\s\S]*?)(?=QUIZ \d+:|$)/g);
         
@@ -1441,7 +1369,7 @@ Sé pedagógico y diferencia entre correcta e incorrectas. Responde SOLO con el 
             }
         });
 
-        console.log('✅ [QUIZ] Quiz generados:', quizzes.length);
+        console.log('✅ [QUIZ] Quiz generados:', quizzes.length, 'sobre:', topic);
         return quizzes.slice(0, 2); // Máximo 2 quices
         
     } catch(err) {
