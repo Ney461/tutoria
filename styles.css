@@ -41,7 +41,7 @@ html, body {
 }
 
 .chat-container {
-    height: 100dvh;
+    height: 100vh;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -438,6 +438,10 @@ html, body {
 @media (min-width: 641px) {
     .message > div {
         max-width: 70%;
+    }
+    
+    .chat-container {
+        height: 100dvh;
     }
 }
 
