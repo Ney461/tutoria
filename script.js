@@ -4,7 +4,6 @@
    ============================================ */
 
 // CONFIGURACIÓN
-const OPENROUTER_API_KEY = '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';
 const MODEL = "x-ai/grok-4.1-fast:free";
 
 const SYSTEM_PROMPT = `Eres TutorIA, tutor socrático pedagógico experto. Tu objetivo: que el estudiante ENTIENDA de verdad.
@@ -27,7 +26,11 @@ Tono: Paciente, empático, motivador. Eres su profe, no Wikipedia.`;
 
 // ======== SISTEMA DE ROTACIÓN DE API KEYS ========
 const API_KEYS_POOL = [
-    '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'
+    'ddsdsd',
+    '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',
+    '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',
+    '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',
+    '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'
 ];
 let currentKeyIndex = 0;
 
@@ -47,10 +50,33 @@ function getCurrentApiKey() {
 function rotateApiKey() {
     currentKeyIndex++;
     if (currentKeyIndex >= API_KEYS_POOL.length) {
-        console.error('No API keys available');
+        console.error('❌ [API KEYS] No más API keys disponibles. Se han agotado todas las claves.');
         return false;
     }
+    console.log(`🔄 [API KEYS] Rotando a la siguiente API key. Índice actual: ${currentKeyIndex + 1}/${API_KEYS_POOL.length}`);
     return true;
+}
+
+/**
+ * Marca una API key como inválida y la rota
+ * Se llama cuando recibimos 400, 401, 403 o similar
+ */
+function invalidateCurrentKey(errorCode) {
+    console.warn(`⚠️ [API KEYS] API key inválida (Error ${errorCode}). Índice: ${currentKeyIndex}`);
+    const invalidKey = API_KEYS_POOL[currentKeyIndex];
+    console.warn(`⚠️ [API KEYS] Clave inválida: ${invalidKey.substring(0, 30)}...`);
+    
+    // Eliminar esta clave del pool
+    API_KEYS_POOL.splice(currentKeyIndex, 1);
+    
+    // No incrementar índice porque ya eliminámos el elemento
+    // La siguiente key estará en el mismo índice
+    if (currentKeyIndex >= API_KEYS_POOL.length && API_KEYS_POOL.length > 0) {
+        currentKeyIndex = 0;
+        console.log('🔄 [API KEYS] Reiniciando índice a 0');
+    }
+    
+    console.log(`✅ [API KEYS] Clave eliminada. Pool restante: ${API_KEYS_POOL.length} claves`);
 }
 
 /**
@@ -496,7 +522,7 @@ async function sendMessage(userChoice) {
                     throw new Error('No API keys available');
                 }
 
-                console.log('💬 [OPENROUTER] Enviando a OpenRouter (intento ' + (retryCount + 1) + ')...');
+                console.log(`💬 [OPENROUTER] Enviando a OpenRouter (intento ${retryCount + 1}/${maxRetries}) con clave #${currentKeyIndex + 1}...`);
 
                 res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
                     method: "POST",
@@ -517,15 +543,28 @@ async function sendMessage(userChoice) {
                     })
                 });
 
-                console.log('💬 [OPENROUTER] Status de respuesta:', res.status, res.statusText);
+                console.log(`💬 [OPENROUTER] Status de respuesta: ${res.status} ${res.statusText}`);
 
-                if (res.status === 401 || res.status === 403) {
-                    console.warn(`❌ [OPENROUTER] API key falló (${res.status}), rotando...`);
-                    if (!rotateApiKey()) {
-                        throw new Error('All API keys exhausted');
+                // Códigos de error que indican API key inválida o problema grave
+                if (res.status === 400 || res.status === 401 || res.status === 403 || res.status === 429) {
+                    console.warn(`❌ [OPENROUTER] API key inválida o cuota excedida (${res.status}). Invalidando y rotando...`);
+                    invalidateCurrentKey(res.status);
+                    
+                    // Intentar con la siguiente key
+                    if (API_KEYS_POOL.length > 0) {
+                        retryCount++;
+                        continue; // Reintentar con la siguiente key
+                    } else {
+                        throw new Error(`All API keys invalid (Error ${res.status})`);
                     }
+                } else if (!res.ok) {
+                    // Otros errores (500, etc) - intentar una vez más
+                    console.warn(`⚠️ [OPENROUTER] Error temporal (${res.status}). Reintentando...`);
                     retryCount++;
+                    continue;
                 } else {
+                    // Éxito
+                    console.log('✅ [OPENROUTER] Conexión exitosa');
                     break;
                 }
             } catch (fetchErr) {
@@ -534,14 +573,13 @@ async function sendMessage(userChoice) {
                 if (retryCount >= maxRetries) {
                     throw fetchErr;
                 }
+                console.log(`⏱️ [OPENROUTER] Reintentando en 1 segundo...`);
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Esperar 1 segundo antes de reintentar
             }
         }
 
         if (!res || !res.ok) {
             console.error('❌ [OPENROUTER] Error en respuesta final:', res?.status, res?.statusText);
-            if (res && (res.status === 401 || res.status === 403)) {
-                removeCurrentKey();
-            }
             throw new Error(`API error: ${res?.status || 'unknown'}`);
         }
 
