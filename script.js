@@ -24,13 +24,24 @@ IMPORTANTE - NO APURES:
 Tono: Paciente, empático, motivador. Eres su profe, no Wikipedia.`;
 
 
-// ======== SISTEMA DE ROTACIÓN DE API KEYS ========
+// ======== SISTEMA DE ROTACIÓN DE API KEYS CON EMAILS ========
 const API_KEYS_POOL = [
-    'ddsdsd',
-    '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',
-    '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',
-    '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',
-    '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'
+    {
+        key: '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',
+        email: 'lavadorala7@gmail.com'
+    },
+    {
+        key: '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',
+        email: 'chanchacochina21@gmail.com'
+    },
+    {
+        key: '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',
+        email: 'af9728622@gmail.com'
+    },
+    {
+        key: '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',
+        email: 'andresburgo38@gmail.com'
+    }
 ];
 let currentKeyIndex = 0;
 
@@ -40,7 +51,16 @@ let currentKeyIndex = 0;
  */
 function getCurrentApiKey() {
     if (currentKeyIndex >= API_KEYS_POOL.length) return null;
-    return API_KEYS_POOL[currentKeyIndex];
+    return API_KEYS_POOL[currentKeyIndex].key;
+}
+
+/**
+ * Obtiene el email actual asociado a la API key
+ * @returns {string} Email del dueño de la API key actual
+ */
+function getCurrentEmail() {
+    if (currentKeyIndex >= API_KEYS_POOL.length) return 'N/A';
+    return API_KEYS_POOL[currentKeyIndex].email;
 }
 
 /**
@@ -54,6 +74,7 @@ function rotateApiKey() {
         return false;
     }
     console.log(`🔄 [API KEYS] Rotando a la siguiente API key. Índice actual: ${currentKeyIndex + 1}/${API_KEYS_POOL.length}`);
+    console.log(`📧 [CORREO ACTIVO] ${getCurrentEmail()}`);
     return true;
 }
 
@@ -62,9 +83,12 @@ function rotateApiKey() {
  * Se llama cuando recibimos 400, 401, 403 o similar
  */
 function invalidateCurrentKey(errorCode) {
-    console.warn(`⚠️ [API KEYS] API key inválida (Error ${errorCode}). Índice: ${currentKeyIndex}`);
-    const invalidKey = API_KEYS_POOL[currentKeyIndex];
-    console.warn(`⚠️ [API KEYS] Clave inválida: ${invalidKey.substring(0, 30)}...`);
+    const invalidEmail = getCurrentEmail();
+    const invalidKey = API_KEYS_POOL[currentKeyIndex].key;
+    
+    console.warn(`⚠️ [API KEYS] API key inválida (Error ${errorCode})`);
+    console.warn(`❌ [CORREO FALLIDO] ${invalidEmail}`);
+    console.warn(`❌ [CLAVE FALLIDA] ${invalidKey.substring(0, 30)}...`);
     
     // Eliminar esta clave del pool
     API_KEYS_POOL.splice(currentKeyIndex, 1);
@@ -77,6 +101,11 @@ function invalidateCurrentKey(errorCode) {
     }
     
     console.log(`✅ [API KEYS] Clave eliminada. Pool restante: ${API_KEYS_POOL.length} claves`);
+    
+    // Mostrar nueva clave activa si hay disponible
+    if (API_KEYS_POOL.length > 0) {
+        console.log(`✅ [CORREO ACTIVO AHORA] ${getCurrentEmail()}`);
+    }
 }
 
 /**
@@ -84,7 +113,9 @@ function invalidateCurrentKey(errorCode) {
  */
 function removeCurrentKey() {
     if (currentKeyIndex < API_KEYS_POOL.length) {
+        const removedEmail = API_KEYS_POOL[currentKeyIndex].email;
         API_KEYS_POOL.splice(currentKeyIndex, 1);
+        console.warn(`❌ [CORREO REMOVIDO] ${removedEmail}`);
     }
 }
 
@@ -522,7 +553,11 @@ async function sendMessage(userChoice) {
                     throw new Error('No API keys available');
                 }
 
-                console.log(`💬 [OPENROUTER] Enviando a OpenRouter (intento ${retryCount + 1}/${maxRetries}) con clave #${currentKeyIndex + 1}...`);
+                const activeEmail = getCurrentEmail();
+                console.log(`\n${'═'.repeat(60)}`);
+                console.log(`💬 [OPENROUTER] Enviando a OpenRouter (intento ${retryCount + 1}/${maxRetries})`);
+                console.log(`📧 [CORREO] ${activeEmail}`);
+                console.log(`${'═'.repeat(60)}`);
 
                 res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
                     method: "POST",
@@ -547,7 +582,11 @@ async function sendMessage(userChoice) {
 
                 // Códigos de error que indican API key inválida o problema grave
                 if (res.status === 400 || res.status === 401 || res.status === 403 || res.status === 429) {
-                    console.warn(`❌ [OPENROUTER] API key inválida o cuota excedida (${res.status}). Invalidando y rotando...`);
+                    console.warn(`\n${'═'.repeat(60)}`);
+                    console.warn(`❌ [ERROR ${res.status}] API key inválida o cuota excedida`);
+                    console.warn(`❌ [CORREO FALLIDO] ${getCurrentEmail()}`);
+                    console.warn(`${'═'.repeat(60)}\n`);
+                    console.warn(`🔄 Invalidando y rotando a siguiente API...`);
                     invalidateCurrentKey(res.status);
                     
                     // Intentar con la siguiente key
