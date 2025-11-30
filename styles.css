@@ -121,6 +121,46 @@ html, body {
     color: white;
 }
 
+/* ===== IMÁGENES EN MENSAJES ===== */
+/* Tamaño fijo pequeño como thumbnail (tipo ChatGPT) */
+.message > div img {
+    max-width: 80px !important;
+    min-width: 80px !important;
+    width: 80px !important;
+    height: 80px !important;
+    border-radius: 8px !important;
+    object-fit: cover !important;
+    margin: 0 8px 8px 0 !important;
+    display: inline-block !important;
+    vertical-align: top !important;
+    flex-shrink: 0 !important;
+    float: none !important;
+}
+
+/* En tablets, un poco más grande */
+@media (min-width: 768px) {
+    .message > div img {
+        max-width: 100px !important;
+        min-width: 100px !important;
+        width: 100px !important;
+        height: 100px !important;
+    }
+}
+
+/* ===== PREVIEW DE ARCHIVO SELECCIONADO ===== */
+#imagePreview {
+    border: 2px solid #8b5cf6;
+    background: rgba(139, 92, 246, 0.1);
+    color: white;
+}
+
+/* En modo claro, borde más visible y texto blanco */
+.light-theme #imagePreview {
+    border-color: #7c3aed;
+    background: rgba(124, 58, 237, 0.15);
+    color: white;
+}
+
 /* ===== TYPING INDICATOR ===== */
 /* Puntos animados mostrando que el asistente está escribiendo */
 .typing span {
@@ -350,6 +390,28 @@ html, body {
     margin-bottom: 24px;
 }
 
+/* En mobile, aumentar tamaño de fuente en modales */
+@media (max-width: 480px) {
+    .modal-title {
+        font-size: 22px;
+    }
+    
+    .modal-message {
+        font-size: 18px;
+    }
+    
+    .modal-btn {
+        font-size: 16px;
+        padding: 12px 24px !important;
+    }
+    
+    .modal-content {
+        padding: 28px 24px !important;
+        min-width: 85vw !important;
+        max-width: 90vw !important;
+    }
+}
+
 /* Contenedor de botones del modal */
 .modal-buttons {
     display: flex;
@@ -406,15 +468,15 @@ html, body {
 }
 
 /* ===== BOTÓN BORRAR TODOS LOS CHATS ===== */
-#deleteAllChats {
+#btnDeleteAllChats {
     background: #ef4444 !important;
     color: #ffffff !important;
     border: none !important;
-    font-weight: 600 !important;
+    font-weight: 700 !important;
     border-radius: 8px !important;
 }
 
-#deleteAllChats:hover {
+#btnDeleteAllChats:hover {
     background: #dc2626 !important;
     box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3) !important;
 }
@@ -427,6 +489,15 @@ html, body {
 #imageInput::file-selector-button {
     color: #1f2937 !important;
     background: #f3f4f6 !important;
+}
+
+/* ===== SIDEBAR - HISTORIAL DE CHATS ===== */
+#sidebar .sidebar {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    height: 100vh !important;
+    width: 320px !important;
 }
 
 /* ===== RESPONSIVE DESIGN ===== */
@@ -808,6 +879,7 @@ html, body {
 /* Botón Nuevo Chat en tema claro */
 .light-theme #newChatBtn {
     color: #ffffff !important;
+    font-weight: 700 !important;
 }
 
 /* Typing indicator en tema claro */
@@ -820,7 +892,7 @@ html, body {
     color: #ff0000 !important;
 }
 
-.light-theme button:not(#newChatBtn):not(#themeBtn):not(#menuBtn):not(#closeSidebar):not(.deleteChat) {
+.light-theme button:not(#newChatBtn):not(#btnDeleteAllChats):not(#themeBtn):not(#menuBtn):not(#closeSidebar):not(.deleteChat) {
     color: #000000 !important;
 }
 
@@ -839,9 +911,18 @@ html, body {
 
 .light-theme #send i {
     color: #ffffff !important;
+    stroke: #ffffff !important;
 }
 
-/* Input en tema claro */
+/* Botones de acción en tema claro */
+.light-theme #scanBtn {
+    background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%) !important;
+}
+
+.light-theme #scanBtn i {
+    color: #ffffff !important;
+    stroke: #ffffff !important;
+}
 .light-theme #input {
     color: #111827 !important;
     background: #ffffff !important;
@@ -851,6 +932,19 @@ html, body {
 .light-theme #input::placeholder {
     color: #9ca3af !important;
     opacity: 1;
+}
+
+/* Íconos lucide en botones - Modo claro */
+.light-theme #send svg,
+.light-theme #scanBtn svg {
+    color: #ffffff !important;
+    stroke: #ffffff !important;
+    fill: none !important;
+}
+
+.light-theme #send svg path,
+.light-theme #scanBtn svg path {
+    stroke: #ffffff !important;
 }
 
 /* Modal en tema claro */
@@ -893,12 +987,13 @@ html, body {
 }
 
 /* Botón borrar todos los chats en tema claro */
-.light-theme #deleteAllChats {
+.light-theme #btnDeleteAllChats {
     background: #dc2626 !important;
     color: #ffffff !important;
+    font-weight: 700 !important;
 }
 
-.light-theme #deleteAllChats:hover {
+.light-theme #btnDeleteAllChats:hover {
     background: #b91c1c !important;
     box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3) !important;
 }

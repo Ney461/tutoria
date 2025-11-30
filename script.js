@@ -146,7 +146,6 @@ const send = document.getElementById('send');
 const empty = document.getElementById('empty');
 const scanBtn = document.getElementById('scanBtn');
 const imagePreview = document.getElementById('imagePreview');
-const previewImg = imagePreview.querySelector('img');
 const removeImage = document.getElementById('removeImage');
 const imageInput = document.getElementById('imageInput');
 const menuBtn = document.getElementById('menuBtn');
@@ -280,7 +279,7 @@ newChatBtn.onclick = () => {
  * Incluye fecha exacta de creación y opción de eliminar
  */
 function renderChatList() {
-    chatList.innerHTML = '<button id="deleteAllChats" class="w-full text-center px-4 py-3 mb-3 rounded-lg text-white font-semibold transition">🗑️ Borrar todos los chats</button>';
+    chatList.innerHTML = '<button id="btnDeleteAllChats" class="w-full text-center px-4 py-3 mb-3 rounded-lg text-white font-semibold transition">🗑️ Borrar todos los chats</button>';
     Object.entries(chats).sort((a, b) => new Date(b[1].createdAt) - new Date(a[1].createdAt)).forEach(([id, chat]) => {
         const div = document.createElement('div');
         div.className = 'chat-item flex justify-between items-center p-3 bg-gray-800 rounded-lg hover:bg-gray-700 transition';
@@ -710,7 +709,7 @@ function addMessage(text, sender, image = null, timestamp = new Date().toISOStri
     if (image) {
         const img = document.createElement('img');
         img.src = image;
-        img.className = 'w-full mb-2 rounded-lg';
+        img.className = 'rounded-lg';
         bubble.appendChild(img);
     }
 
@@ -898,21 +897,21 @@ function showOCRWarningModal() {
     
     div.innerHTML = `
         <div class="rounded-2xl p-6 max-w-sm border shadow-2xl ${bgClass}">
-            <p class="${titleClass} text-lg font-bold mb-2">📸 Seleccionar Foto</p>
-            <p class="${textClass} mb-4 text-sm leading-relaxed">
+            <p class="${titleClass} text-xl font-bold mb-3">📸 Seleccionar Foto</p>
+            <p class="${textClass} mb-4 text-base leading-relaxed">
                 Esta función reconoce <strong>texto en imágenes</strong>. Solo funcionará si la foto contiene texto legible (documentos, pizarras, libros, etc.).
             </p>
-            <p class="${warningClass} text-xs mb-4 font-semibold">
+            <p class="${warningClass} text-sm mb-4 font-semibold">
                 ⚠️ Si la foto no tiene texto o el texto no es legible, la transcripción fallará.
             </p>
-            <p class="${textClass} text-xs mb-6 opacity-75">
+            <p class="${textClass} text-sm mb-6 opacity-75">
                 ⏱️ La transcripción puede demorar 10-15 segundos. Por favor, espera pacientemente.
             </p>
             <div class="flex gap-3 justify-end">
-                <button id="cancelOCRModal" class="px-4 py-2 rounded-lg transition font-medium text-sm ${isLightMode ? 'bg-gray-200 hover:bg-gray-300 text-gray-800' : 'bg-white/10 hover:bg-white/20 text-white'}">
+                <button id="cancelOCRModal" class="px-4 py-3 rounded-lg transition font-medium text-base ${isLightMode ? 'bg-gray-200 hover:bg-gray-300 text-gray-800' : 'bg-white/10 hover:bg-white/20 text-white'}">
                     Cancelar
                 </button>
-                <button id="continueOCRModal" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition font-medium text-sm">
+                <button id="continueOCRModal" class="px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition font-medium text-base">
                     Continuar
                 </button>
             </div>
@@ -962,7 +961,11 @@ function handleImageInput(fileInput) {
             const reader = new FileReader();
             reader.onload = ev => {
                 selectedImage = ev.target.result;
-                previewImg.src = selectedImage;
+                // Mostrar nombre del archivo
+                const fileName = document.getElementById('fileName');
+                if (fileName) {
+                    fileName.textContent = `📷 ${file.name}`;
+                }
                 imagePreview.classList.remove('hidden');
                 updateSendState();
             };
@@ -979,7 +982,6 @@ handleImageInput(imageInput);
 function clearImagePreview() {
     selectedImage = null;
     imagePreview.classList.add('hidden');
-    previewImg.src = '';
     imageInput.value = ''; // Limpiar el input file también
     updateSendState();
 }
@@ -1030,15 +1032,15 @@ function showTranscriptionErrorModal() {
     
     div.innerHTML = `
         <div class="rounded-2xl p-6 max-w-sm border shadow-2xl ${bgClass}">
-            <p class="${titleClass} text-lg font-bold mb-2">❌ Error de Transcripción</p>
-            <p class="${textClass} mb-6 text-sm leading-relaxed">
+            <p class="${titleClass} text-xl font-bold mb-3">❌ Error de Transcripción</p>
+            <p class="${textClass} mb-6 text-base leading-relaxed">
                 La foto que subiste no contiene texto legible o el texto no se pudo transcribir correctamente.
             </p>
-            <p class="${hintClass} text-xs mb-6 font-semibold">
+            <p class="${hintClass} text-sm mb-6 font-semibold">
                 💡 Intenta con:<br>• Una foto de mejor calidad<br>• Texto más grande o legible<br>• Otra imagen
             </p>
             <div class="flex gap-3 justify-end">
-                <button id="closeErrorModal" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition font-medium text-sm">
+                <button id="closeErrorModal" class="px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition font-medium text-base">
                     Aceptar
                 </button>
             </div>
@@ -1831,10 +1833,67 @@ document.getElementById('confirmModal').addEventListener('click', (e) => {
  * Event listener para botón "Borrar todos los chats"
  */
 document.addEventListener('click', function(e) {
-    if (e.target.id === 'deleteAllChats') {
+    if (e.target.id === 'btnDeleteAllChats') {
         pendingDeleteId = 'ALL';
         document.querySelector('.modal-title').textContent = '⚠️ Confirmar eliminación';
         document.querySelector('.modal-message').textContent = '¿Estás seguro de que deseas eliminar TODOS los chats? Esta acción no se puede deshacer.';
         showConfirmModal();
     }
+});
+
+// ======== DETECTAR TECLADO EN MOBILE Y HACER SCROLL ========
+/**
+ * Hace scroll agresivo hacia abajo para ver el chat completo
+ * cuando el teclado aparece en mobile
+ */
+function scrollToBottomAggressive() {
+    requestAnimationFrame(() => {
+        // Scroll en el contenedor de mensajes
+        messagesArea.scrollTop = messagesArea.scrollHeight + 200;
+        // Scroll en la página
+        window.scrollTo(0, document.body.scrollHeight);
+        // Asegurar que se vea el input
+        const input = document.getElementById('input');
+        if (input) {
+            input.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }
+    });
+}
+
+let lastViewportHeight = window.innerHeight;
+
+window.addEventListener('resize', () => {
+    const currentHeight = window.innerHeight;
+    
+    // Si la altura cambió más de 50px, probablemente es por el teclado
+    if (currentHeight < lastViewportHeight - 50) {
+        // Teclado apareció (altura disminuyó)
+        console.log('⌨️ [TECLADO] Teclado detectado en pantalla (resize)');
+        setTimeout(() => {
+            scrollToBottomAggressive();
+        }, 100);
+    }
+    
+    lastViewportHeight = currentHeight;
+});
+
+// Detectar con visualviewport (más confiable en algunos móviles)
+if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', () => {
+        console.log('⌨️ [TECLADO] Cambio en visualViewport detectado');
+        setTimeout(() => {
+            scrollToBottomAggressive();
+        }, 100);
+    });
+}
+
+// Detectar focus en el input INMEDIATAMENTE
+input.addEventListener('focus', () => {
+    console.log('⌨️ [INPUT] Focus detectado - Haciendo scroll hacia abajo');
+    scrollToBottomAggressive();
+});
+
+// Detectar también cuando el usuario empieza a escribir
+input.addEventListener('keydown', () => {
+    messagesArea.scrollTop = messagesArea.scrollHeight;
 });
