@@ -1,0 +1,921 @@
+/* ============================================
+   TUTORIA - STYLES.CSS
+   Estilos globales y temas (oscuro y claro)
+   ============================================ */
+
+/* ===== RESET Y ESTILOS BASE ===== */
+html {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    /* GPU Acceleration para móviles */
+    -webkit-font-smoothing: antialiased;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    will-change: scroll-position;
+}
+
+* {
+    -webkit-tap-highlight-color: transparent;
+    /* Optimización de renderizado */
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+}
+
+body {
+    font-family: 'Inter', system-ui, sans-serif;
+    overscroll-behavior: none;
+    background: #0f0f1e;
+    overflow-x: hidden !important;
+    width: 100%;
+    height: auto;
+}
+
+html {
+    overflow-x: hidden !important;
+}
+
+html, body {
+    touch-action: manipulation;
+    -ms-touch-action: manipulation;
+}
+
+.chat-container {
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    width: 100%;
+    max-width: 100%;
+}
+
+/* ===== ANIMACIONES Y FONDOS ===== */
+/* Fondo animado con estrellas y nebulosa */
+.space-bg {
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    background: radial-gradient(ellipse at bottom, #1b2947 0%, #0f0f1e 70%);
+}
+
+/* Estrellas parpadeantes */
+.stars {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 0 8px white;
+    animation: twinkle 6s infinite;
+}
+
+@keyframes twinkle {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
+}
+
+/* Partículas flotantes */
+.particle {
+    position: absolute;
+    background: #818cf8;
+    border-radius: 50%;
+    opacity: 0.4;
+    animation: float 20s infinite linear;
+}
+
+@keyframes float {
+    from { transform: translateY(100vh) rotate(0deg); }
+    to { transform: translateY(-100px) rotate(360deg); }
+}
+
+/* ===== GLASSMORPHISM ===== */
+/* Efecto de vidrio esmerilado premium */
+.glass {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-dark {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+/* ===== MENSAJES DE CHAT ===== */
+.message {
+    margin-bottom: 16px;
+    /* GPU acceleration para smooth scrolling */
+    transform: translate3d(0, 0, 0);
+    will-change: transform;
+}
+
+/* Mensaje del usuario - Gradiente púrpura */
+.msg-user {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+/* Mensaje del asistente - Fondo translúcido */
+.msg-assistant {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    color: white;
+}
+
+/* ===== TYPING INDICATOR ===== */
+/* Puntos animados mostrando que el asistente está escribiendo */
+.typing span {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #a78bfa;
+    animation: typing 1.4s infinite;
+}
+
+.typing span:nth-child(1) { animation-delay: 0s; }
+.typing span:nth-child(2) { animation-delay: 0.2s; }
+.typing span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typing {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+/* ===== SCROLLBAR PERSONALIZADO ===== */
+::-webkit-scrollbar {
+    width: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(139, 92, 246, 0.5);
+    border-radius: 2px;
+}
+
+/* ===== INPUTS Y FORMULARIOS ===== */
+/* Efecto glow al enfocarse en inputs */
+.input-glow:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.4);
+}
+
+/* Input principal de mensajes */
+#input {
+    background: rgba(107, 114, 128, 0.12) !important;
+    color: #ffffff !important;
+    overflow: hidden !important;
+}
+
+#input::placeholder {
+    color: rgba(255, 255, 255, 0.6) !important;
+}
+
+/* Radio buttons para quiz */
+.quiz-option {
+    accent-color: #8b5cf6;
+}
+
+.quiz-option:checked + span {
+    filter: brightness(1.05);
+}
+
+.quiz-radio {
+    accent-color: #8b5cf6;
+    cursor: pointer;
+}
+
+/* ===== IMAGE PREVIEW ===== */
+.image-preview img {
+    max-height: 200px;
+    border-radius: 8px;
+}
+
+/* ===== QUIZ BUTTONS ===== */
+#submitQuiz {
+    transition: all 180ms ease;
+}
+
+#submitQuiz:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+/* Efecto glow para botón de quiz en modo oscuro */
+.quiz-glow-dark {
+    box-shadow: 0 8px 24px rgba(139, 92, 246, 0.35), 0 0 18px rgba(139, 92, 246, 0.45) !important;
+    transform: translateY(-2px);
+}
+
+/* ===== BOTÓN SEND DESHABILITADO ===== */
+#send[disabled],
+#send.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+    pointer-events: none;
+}
+
+/* ===== AVATAR ===== */
+#avatarImg {
+    border-radius: 9999px;
+    display: block;
+}
+
+#avatarContainer img {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+#avatarContainer:hover {
+    transform: translateY(-1px);
+}
+
+/* ===== MEDIA MENU ===== */
+#mediaMenu {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 0;
+    width: max-content !important;
+    min-width: 160px !important;
+    max-width: 90% !important;
+    padding: 8px 12px !important;
+    border-radius: 12px !important;
+    background: rgba(30, 41, 59, 0.95) !important;
+    backdrop-filter: blur(8px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    z-index: 50;
+}
+
+#mediaMenu:not(.hidden) {
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+#mediaMenu .media-option {
+    display: block;
+    padding: 10px 16px;
+    font-size: 14px;
+    color: #ffffff;
+    background: transparent;
+    border-radius: 8px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 150ms ease;
+    white-space: nowrap;
+}
+
+#mediaMenu .media-option:hover {
+    background: rgba(99, 102, 241, 0.15);
+    color: #e0e7ff;
+}
+
+/* ===== MODAL PERSONALIZADO ===== */
+#confirmModal {
+    position: fixed !important;
+    inset: 0 !important;
+    background: rgba(0, 0, 0, 0.5) !important;
+    display: none !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 99999 !important;
+    backdrop-filter: blur(4px) !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    padding: 20px !important;
+}
+
+#confirmModal.show {
+    display: flex !important;
+}
+
+#confirmModal.dark-theme {
+    background: rgba(0, 0, 0, 0.6) !important;
+}
+
+#confirmModal.light-theme {
+    background: rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Contenido del modal con animación */
+.modal-content {
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.98) 0%, rgba(15, 23, 42, 0.98) 100%) !important;
+    border: 1px solid rgba(139, 92, 246, 0.3) !important;
+    border-radius: 16px !important;
+    padding: 24px 20px !important;
+    max-width: 90% !important;
+    width: auto !important;
+    min-width: 280px !important;
+    max-height: 85vh !important;
+    overflow-y: auto !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6) !important;
+    animation: slideUp 400ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+    margin: 20px auto !important;
+    position: relative !important;
+    box-sizing: border-box !important;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px); /* Cambiado para mejor efecto */
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Título del modal */
+.modal-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: #ffffff;
+}
+
+/* Mensaje del modal */
+.modal-message {
+    font-size: 14px;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 24px;
+}
+
+/* Contenedor de botones del modal */
+.modal-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+/* Botón genérico del modal */
+.modal-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 150ms ease;
+    min-width: 100px;
+}
+
+/* Botón Cancelar - Transparente con borde */
+.modal-btn-cancel {
+    background: transparent !important;
+    color: rgba(255, 255, 255, 0.9) !important;
+    border: 2px solid rgba(255, 255, 255, 0.4) !important;
+}
+
+.modal-btn-cancel:hover {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border-color: rgba(255, 255, 255, 0.6) !important;
+}
+
+/* Botón Confirmar - Rojo */
+.modal-btn-confirm {
+    background: #dc2626;
+    color: #ffffff;
+}
+
+.modal-btn-confirm:hover {
+    background: #b91c1c;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
+}
+
+/* ===== DELETE BUTTON ===== */
+/* Botón para eliminar chats individuales */
+.deleteChat {
+    color: #ef4444 !important;
+    background: transparent !important;
+    border: none !important;
+    cursor: pointer;
+}
+
+.deleteChat:hover {
+    opacity: 0.7 !important;
+}
+
+/* ===== BOTÓN BORRAR TODOS LOS CHATS ===== */
+#deleteAllChats {
+    background: #ef4444 !important;
+    color: #ffffff !important;
+    border: none !important;
+    font-weight: 600 !important;
+    border-radius: 8px !important;
+}
+
+#deleteAllChats:hover {
+    background: #dc2626 !important;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3) !important;
+}
+
+/* ===== FILE INPUT ===== */
+#imageInput {
+    color: #111827 !important;
+}
+
+#imageInput::file-selector-button {
+    color: #1f2937 !important;
+    background: #f3f4f6 !important;
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+/* Ancho de mensajes en pantalla pequeña */
+.message > div {
+    max-width: 80%;
+}
+
+@media (min-width: 641px) {
+    .message > div {
+        max-width: 70%;
+    }
+}
+
+/* ===== RESPONSIVE PARA TABLETS Y MÓVILES ===== */
+
+/* Tablets y pantallas medianas (768px y menos) */
+@media (max-width: 768px) {
+    body {
+        font-size: 14px;
+    }
+
+    .chat-container {
+        height: 100dvh !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    #messagesArea {
+        flex: 1 !important;
+        overflow-y: auto !important;
+    }
+
+    .message > div {
+        max-width: 85% !important;
+        word-wrap: break-word;
+    }
+
+    header {
+        padding: 8px 12px !important;
+        flex-shrink: 0;
+    }
+
+    header .flex.items-center.gap-3 {
+        gap: 6px;
+    }
+
+    /* Sidebar responsivo */
+    .sidebar {
+        width: 85% !important;
+        left: 7.5% !important;
+        max-width: 100% !important;
+    }
+
+    /* Inputs y botones con tap targets amplios */
+    button, .p-3, .p-4 {
+        min-width: 44px !important;
+        min-height: 44px !important;
+    }
+
+    #input {
+        font-size: 16px !important;
+        padding: 12px 14px !important;
+        min-height: 44px;
+    }
+
+    input[type="text"], textarea, input[type="file"] {
+        font-size: 16px !important;
+        min-height: 44px;
+    }
+
+    .glass.border-t {
+        padding: 8px !important;
+        flex-shrink: 0;
+    }
+
+    .flex.gap-3.max-w-4xl {
+        flex-wrap: nowrap !important;
+        gap: 4px !important;
+        width: 100% !important;
+    }
+
+    .image-preview {
+        max-width: 100% !important;
+        margin: 0 auto 8px !important;
+    }
+
+    .image-preview img {
+        max-height: 40vh !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        object-fit: contain;
+    }
+
+    #send, #scanBtn {
+        padding: 10px !important;
+        min-width: 44px !important;
+        min-height: 44px !important;
+        flex-shrink: 0 !important;
+    }
+
+    label[for^="quiz_opt_"] {
+        padding: 10px 8px !important;
+        border-radius: 8px !important;
+        min-height: 44px !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+
+    #submitQuiz {
+        width: 100% !important;
+        display: block !important;
+        min-height: 44px !important;
+        font-size: 14px !important;
+    }
+
+    .modal-btn {
+        min-width: 80px !important;
+        min-height: 40px !important;
+        font-size: 13px !important;
+        padding: 8px 16px !important;
+    }
+}
+
+/* Móviles pequeños (480px y menos) */
+@media (max-width: 480px) {
+    body {
+        font-size: 13px;
+    }
+
+    header {
+        padding: 6px 8px !important;
+    }
+
+    header .flex.items-center.gap-3 {
+        gap: 4px !important;
+    }
+
+    #appTitle {
+        font-size: 14px !important;
+    }
+
+    .sidebar {
+        width: 80% !important;
+        left: 10% !important;
+    }
+
+    .message > div {
+        max-width: 90% !important;
+        padding: 8px 12px !important;
+        font-size: 13px !important;
+    }
+
+    .msg-user, .msg-assistant {
+        border-radius: 12px !important;
+    }
+
+    #input {
+        font-size: 16px !important;
+        padding: 10px 12px !important;
+        min-height: 44px;
+        border-radius: 20px !important;
+    }
+
+    .flex.gap-3.max-w-4xl {
+        gap: 2px !important;
+    }
+
+    #send, #scanBtn {
+        padding: 8px !important;
+        min-width: 40px !important;
+        min-height: 40px !important;
+    }
+
+    #send i, #scanBtn i {
+        width: 18px !important;
+        height: 18px !important;
+    }
+
+    .glass.border-t {
+        padding: 6px !important;
+    }
+
+    .image-preview img {
+        max-height: 50vh !important;
+    }
+
+    .modal-title {
+        font-size: 16px !important;
+    }
+
+    .modal-message {
+        font-size: 12px !important;
+    }
+
+    .modal-btn {
+        min-height: 36px !important;
+        font-size: 12px !important;
+        padding: 6px 12px !important;
+    }
+
+    label[for^="quiz_opt_"] {
+        font-size: 13px !important;
+        min-height: 40px !important;
+    }
+
+    #submitQuiz {
+        font-size: 13px !important;
+        min-height: 40px !important;
+    }
+}
+
+/* Móviles ultra pequeños (max 360px) */
+@media (max-width: 360px) {
+    body {
+        font-size: 12px;
+    }
+
+    header {
+        padding: 4px 6px !important;
+    }
+
+    header .flex.items-center.gap-3 {
+        gap: 2px !important;
+    }
+
+    #appTitle {
+        font-size: 12px !important;
+    }
+
+    .message > div {
+        max-width: 95% !important;
+        padding: 6px 10px !important;
+        font-size: 12px !important;
+    }
+
+    #input {
+        font-size: 16px !important;
+        padding: 8px 10px !important;
+    }
+
+    .glass.border-t {
+        padding: 4px !important;
+    }
+
+    #send, #scanBtn {
+        padding: 6px !important;
+        min-width: 36px !important;
+        min-height: 36px !important;
+    }
+
+    #send i, #scanBtn i {
+        width: 16px !important;
+        height: 16px !important;
+    }
+
+    .modal-btn {
+        min-height: 32px !important;
+        font-size: 11px !important;
+        padding: 4px 8px !important;
+    }
+}
+
+/* ===== TEMA CLARO (LIGHT MODE) ===== */
+/* Aplicar cambios de color cuando la clase light-theme esté activa */
+
+.light-theme body {
+    background: #f3f4f6;
+    color: #1f2937;
+}
+
+.light-theme .space-bg {
+    background: radial-gradient(ellipse at bottom, #dbeafe 0%, #eff6ff 70%);
+}
+
+/* Mensajes en tema claro */
+.light-theme .msg-user {
+    background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+    color: white;
+}
+
+.light-theme .msg-assistant {
+    background: rgba(255, 255, 255, 0.8);
+    color: #1f2937;
+    border: 1px solid #d1d5db;
+}
+
+/* Glass en tema claro */
+.light-theme .glass {
+    background: rgba(255, 255, 255, 0.95) !important;
+    border: 1px solid #d1d5db;
+    color: #1f2937;
+}
+
+.light-theme .input-glow:focus {
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4) !important;
+}
+
+/* Partículas en tema claro */
+.light-theme .particle {
+    background: #60a5fa;
+}
+
+/* Estrellas en tema claro */
+.light-theme .stars {
+    background: #1f2937;
+    box-shadow: 0 0 8px #1f2937;
+}
+
+/* Texto en tema claro */
+.light-theme .text-white {
+    color: #111827 !important;
+}
+
+.light-theme header {
+    color: #111827 !important;
+}
+
+.light-theme header button {
+    color: #111827 !important;
+}
+
+.light-theme header button i {
+    color: #111827 !important;
+}
+
+.light-theme header .text-white {
+    color: #111827 !important;
+}
+
+.light-theme #appTitle {
+    color: #111827 !important;
+}
+
+.light-theme #empty p {
+    color: #111827 !important;
+}
+
+.light-theme p {
+    color: #1f2937 !important;
+}
+
+.light-theme span {
+    color: #111827 !important;
+}
+
+/* Sidebar en tema claro */
+.light-theme .sidebar {
+    background: #ffffff !important;
+    color: #111827 !important;
+}
+
+.light-theme .sidebar .glass {
+    background: #ffffff !important;
+    color: #111827 !important;
+}
+
+/* Items del chat en tema claro */
+.light-theme .chat-item {
+    /* Color ligeramente azulado para armonizar con las burbujas azules
+       y mejorar contraste sobre el fondo claro. */
+    background: #eef2ff !important;
+    color: #111827 !important;
+    border: 1px solid #d1d5db !important;
+}
+
+.light-theme .chat-item p {
+    color: #1f2937 !important;
+}
+
+.light-theme .chat-item .font-bold {
+    color: #111827 !important;
+}
+
+/* Botón Nuevo Chat en tema claro */
+.light-theme #newChatBtn {
+    color: #ffffff !important;
+}
+
+/* Typing indicator en tema claro */
+.light-theme .typing span {
+    background: #3b82f6 !important;
+}
+
+/* Botones en tema claro - mantener color blanco */
+.light-theme button {
+    color: #ff0000 !important;
+}
+
+.light-theme button:not(#newChatBtn):not(#themeBtn):not(#menuBtn):not(#closeSidebar):not(.deleteChat) {
+    color: #000000 !important;
+}
+
+/* Botones de acción en tema claro */
+.light-theme #scanBtn {
+    background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%) !important;
+}
+
+.light-theme #scanBtn i {
+    color: #ffffff !important;
+}
+
+.light-theme #send {
+    background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%) !important;
+}
+
+.light-theme #send i {
+    color: #ffffff !important;
+}
+
+/* Input en tema claro */
+.light-theme #input {
+    color: #111827 !important;
+    background: #ffffff !important;
+    border: 2px solid #d1d5db !important;
+}
+
+.light-theme #input::placeholder {
+    color: #9ca3af !important;
+    opacity: 1;
+}
+
+/* Modal en tema claro */
+.light-theme .modal-content {
+    background: #ffffff !important;
+    border: 2px solid #d1d5db !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15) !important;
+}
+
+.light-theme .modal-title {
+    color: #111827 !important;
+}
+
+.light-theme .modal-message {
+    color: #1f2937 !important;
+}
+
+/* Botón Cancelar en tema claro - TEXTO EN NEGRO VISIBLE */
+.light-theme .modal-btn-cancel {
+    background: transparent !important;
+    color: #000000 !important;
+    border: 2px solid #6b7280 !important;
+    font-weight: 700 !important;
+}
+
+.light-theme .modal-btn-cancel:hover {
+    background: #f3f4f6 !important;
+    border-color: #374151 !important;
+    color: #111827 !important;
+}
+
+/* Botón Confirmar en tema claro */
+.light-theme .modal-btn-confirm {
+    background: #dc2626;
+    color: #ffffff;
+}
+
+.light-theme .modal-btn-confirm:hover {
+    background: #b91c1c;
+}
+
+/* Botón borrar todos los chats en tema claro */
+.light-theme #deleteAllChats {
+    background: #dc2626 !important;
+    color: #ffffff !important;
+}
+
+.light-theme #deleteAllChats:hover {
+    background: #b91c1c !important;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3) !important;
+}
+
+/* Media menu en tema claro */
+.light-theme #mediaMenu {
+    background: #ffffff !important;
+    border: 2px solid #d1d5db !important;
+}
+
+.light-theme #mediaMenu .media-option {
+    color: #111827 !important;
+}
+
+.light-theme #mediaMenu .media-option:hover {
+    background: #f3f4f6 !important;
+    color: #111827 !important;
+}
+
+/* Glow para quiz en tema claro */
+.light-theme .quiz-glow-light {
+    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.25), 0 0 18px rgba(59, 130, 246, 0.45) !important;
+    transform: translateY(-2px);
+}

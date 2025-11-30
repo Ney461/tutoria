@@ -2,205 +2,36 @@
 <html lang="es" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0f0f1e">
     <title>TutorIA • Tu profe personalizado</title>
+    
+    <!-- CSS Frameworks y librerías externas -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-    <script src="https://unpkg.com/tesseract.js@v4.0.2/dist/tesseract.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Configuración de Tailwind (darkMode) -->
     <script>
         tailwind.config = { darkMode: 'class' }
     </script>
-    <style>
-        * { -webkit-tap-highlight-color: transparent; }
-        body { 
-            font-family: 'Inter', system-ui, sans-serif; 
-            overscroll-behavior: none;
-            background: #0f0f1e;
-        }
-        .chat-container { height: 100dvh; display: flex; flex-direction: column; }
-
-        /* Fondo animado con estrellas y nebulosa */
-        .space-bg {
-            position: fixed; inset: 0; z-index: -2;
-            background: radial-gradient(ellipse at bottom, #1b2947 0%, #0f0f1e 70%);
-        }
-        .stars { position: absolute; width: 2px; height: 2px; background: white; border-radius: 50%; box-shadow: 0 0 8px white; animation: twinkle 6s infinite; }
-        @keyframes twinkle { 0%,100% { opacity: 0.3; } 50% { opacity: 1; } }
-
-        /* Partículas flotantes */
-        .particle { 
-            position: absolute; background: #818cf8; border-radius: 50%; opacity: 0.4;
-            animation: float 20s infinite linear;
-        }
-        @keyframes float {
-            from { transform: translateY(100vh) rotate(0deg); }
-            to { transform: translateY(-100px) rotate(360deg); }
-        }
-
-        /* Glassmorphism premium */
-        .glass { 
-            background: rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .glass-dark { background: rgba(0, 0, 0, 0.3); }
-
-        /* Mensajes con glow y espacio */
-        .message { margin-bottom: 16px; }
-        .msg-user { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
-        .msg-assistant { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); color: white; }
-
-        /* Typing dots épicos */
-        .typing span {
-            display: inline-block;
-            width: 8px; height: 8px;
-            border-radius: 50%;
-            background: #a78bfa;
-            animation: typing 1.4s infinite;
-        }
-        .typing span:nth-child(1) { animation-delay: 0s; }
-        .typing span:nth-child(2) { animation-delay: 0.2s; }
-        .typing span:nth-child(3) { animation-delay: 0.4s; }
-        @keyframes typing { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-
-        /* Scrollbar invisible */
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.5); border-radius: 2px; }
-
-        /* Entrada con glow */
-        .input-glow:focus { 
-            outline: none; 
-            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.4);
-        }
-
-        /* Quiz radio buttons */
-        .quiz-option { accent-color: #8b5cf6; }
-
-        /* Preview de imagen */
-        .image-preview img { max-height: 200px; border-radius: 8px; }
-
-        /* Quiz submit button styles */
-        #submitQuiz {
-            transition: all 180ms ease;
-        }
-        #submitQuiz:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            box-shadow: none !important;
-            transform: none !important;
-        }
-        /* Glow when enabled - dark theme */
-        .quiz-glow-dark {
-            box-shadow: 0 8px 24px rgba(139,92,246,0.35), 0 0 18px rgba(139,92,246,0.45) !important;
-            transform: translateY(-2px);
-        }
-        /* Glow when enabled - light theme */
-        .light-theme .quiz-glow-light {
-            box-shadow: 0 8px 24px rgba(59,130,246,0.25), 0 0 18px rgba(59,130,246,0.45) !important;
-            transform: translateY(-2px);
-        }
-        /* Make radio labels clickable and highlight selected option */
-        .quiz-option:checked + span { filter: brightness(1.05); }
-
-        /* Tema claro mejorado */
-        .light-theme body { background: #f3f4f6; color: #1f2937; }
-        .light-theme .space-bg { background: radial-gradient(ellipse at bottom, #dbeafe 0%, #eff6ff 70%); }
-        .light-theme .msg-user { background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%); color: white; }
-        .light-theme .msg-assistant { background: rgba(255,255,255,0.8); color: #1f2937; border: 1px solid #d1d5db; }
-        .light-theme .glass { background: rgba(255,255,255,0.7); border: 1px solid #d1d5db; color: #1f2937; }
-        .light-theme .input-glow:focus { box-shadow: 0 0 0 3px rgba(59,130,246,0.4); }
-        .light-theme .particle { background: #60a5fa; }
-        .light-theme .stars { background: #1f2937; box-shadow: 0 0 8px #1f2937; }
-        .light-theme .text-white { color: #1f2937 !important; }
-        .light-theme header { color: #1f2937 !important; }
-        .light-theme header button { color: #1f2937 !important; }
-        .light-theme header button i { color: #1f2937 !important; }
-        .light-theme header .text-white { color: #1f2937 !important; }
-        .light-theme #appTitle { color: #111827 !important; }
-        .light-theme #empty p { color: #1f2937 !important; }
-        .light-theme .sidebar { background: rgba(255,255,255,0.9); color: #1f2937; }
-        .light-theme .chat-item { color: #1f2937; }
-        /* Mejor contraste para items del historial en tema claro */
-        .light-theme .chat-item { 
-            background: rgba(15,23,42,0.04) !important; 
-            color: #1f2937 !important; 
-            border: 1px solid rgba(15,23,42,0.04);
-        }
-        .light-theme .chat-item p { color: #374151 !important; }
-        .light-theme .chat-item .font-bold { color: #111827 !important; }
-        .light-theme .deleteChat { color: #ef4444 !important; }
-        .light-theme .sidebar .glass { background: rgba(255,255,255,0.95); }
-        .light-theme #newChatBtn { color: #ffffff !important; }
-        .light-theme .typing span { background: #3b82f6 !important; }
-        .light-theme input { color: #1f2937 !important; }
-        .light-theme input::placeholder { color: #9ca3af !important; }
-        .light-theme button { color: #ffffff !important; }
-        .light-theme button:not(#newChatBtn):not(#themeBtn):not(#menuBtn):not(#closeSidebar) { color: #111827 !important; }
-        /* Avatar image styling */
-        #avatarImg { border-radius: 9999px; display: block; }
-        #avatarContainer img { width: 100%; height: 100%; display: block; }
-        #avatarContainer:hover { transform: translateY(-1px); }
-        /* Media menu sizing and options styling */
-        #mediaMenu { min-width: 160px; padding: 6px; border-radius: 12px; }
-        #mediaMenu .media-option { display: block; padding: 10px 14px; font-size: 16px; color: #ffffff; background: transparent; border-radius: 8px; text-align: left; }
-        #mediaMenu .media-option:hover { background: rgba(255,255,255,0.05); }
-        /* Responsiveness tweaks for mobile / WebView */
-        /* Make message bubbles use more of width on small screens and keep readable padding */
-        .message > div { max-width: 80%; }
-        @media (max-width: 640px) {
-            .message > div { max-width: 94% !important; padding-left: 14px; padding-right: 14px; }
-            header { padding: 8px 12px; }
-            header .flex.items-center.gap-3 { gap: 8px; }
-            .chat-container { height: 100dvh; }
-            /* Sidebar becomes full-height drawer and wider on small screens */
-            .sidebar { width: 92% !important; left: 4% !important; top: 0; bottom: 0; }
-            /* Ensure tap targets are big enough */
-            button, .p-3, .p-4 { min-width: 44px; min-height: 44px; }
-            #input { font-size: 16px; }
-            input[type="text"], textarea { font-size: 16px; }
-            /* Media menu: full-width near bottom */
-            #mediaMenu { right: 8px !important; left: 8px !important; bottom: 72px !important; width: auto !important; min-width: 160px; }
-            /* Make image preview adapt */
-            .image-preview img { max-height: 40vh; width: 100%; object-fit: contain; }
-            /* Increase visibility of send/attach buttons */
-            #send, #scanBtn { padding: 12px !important; }
-            /* Quiz labels and buttons: larger tap area */
-            label[for^="quiz_opt_"] { padding: 8px; border-radius: 8px; }
-            #submitQuiz { width: 100%; display: block; }
-        }
-
-        /* Light theme input / placeholder contrast fixes */
-        .light-theme #input { color: #111827 !important; background: rgba(255,255,255,0.8) !important; }
-        .light-theme .input-glow:focus { box-shadow: 0 0 0 3px rgba(59,130,246,0.25) !important; }
-        .light-theme #input::placeholder { color: #6b7280 !important; opacity: 1; }
-        .light-theme .glass { background: rgba(255,255,255,0.95) !important; }
-
-        /* Disabled send button look */
-        #send[disabled], #send.disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none !important;
-            box-shadow: none !important;
-            pointer-events: none;
-        }
-        @media (min-width: 641px) {
-            .message > div { max-width: 70%; }
-        }
-
-        /* Prevent pinch-zoom behavior hints (complement viewport meta) */
-        html, body { touch-action: manipulation; -ms-touch-action: manipulation; }
-    </style>
+    
+    <!-- Estilos locales -->
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body class="text-white">
 
-    <!-- Fondo espacial -->
+    <!-- Fondo espacial animado -->
     <div class="space-bg"></div>
     <div id="particles"></div>
 
-    <!-- Welcome Screen -->
+    <!-- Pantalla de Bienvenida -->
     <div id="welcome" class="min-h-screen flex items-center justify-center p-5">
         <div class="w-full max-w-md">
             <div class="text-center mb-10 animate-fade-in">
@@ -223,12 +54,13 @@
 
     <!-- App Principal -->
     <div id="app" class="chat-container hidden">
-        <!-- Header -->
+        
+        <!-- Header con controles -->
         <header class="glass p-4 flex items-center justify-between border-b border-white/10">
             <button id="menuBtn" class="p-3 rounded-xl hover:bg-white/10 transition"><i data-lucide="menu" class="w-6 h-6"></i></button>
             <div class="flex items-center gap-3">
-                <div id="avatarContainer" class="w-10 h-10 rounded-full bg-gradient-to-r from-purple-600 to-indigo-700 flex items-center justify-center overflow-hidden relative">
-                    <img id="avatarImg" src="https://i.ibb.co/Hp4dKcQn/tutoria-icono.jpg" alt="avatar" class="w-10 h-10 object-cover">
+                <div id="avatarContainer" class="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden relative">
+                    <img id="avatarImg" src="./tutoria_icono.jpg" alt="avatar" class="w-10 h-10 object-cover rounded-full">
                     <i id="avatarIcon" data-lucide="bot" class="w-6 h-6 text-white hidden"></i>
                 </div>
                 <span id="appTitle" class="font-bold text-lg">TutorIA</span>
@@ -236,10 +68,9 @@
             <div class="flex items-center gap-2">
                 <button id="themeBtn" class="p-3 rounded-xl hover:bg-white/10 transition"><i data-lucide="moon" class="w-6 h-6"></i></button>
             </div>
-            <!-- Avatar is fixed to user-provided URL; upload removed -->
         </header>
 
-        <!-- Sidebar para Historial -->
+        <!-- Sidebar para Historial de Chats -->
         <div id="sidebar" class="fixed inset-0 bg-black/70 z-40 hidden">
             <div class="absolute left-0 top-0 bottom-0 w-80 max-w-full bg-gray-900 p-4 overflow-y-auto sidebar">
                 <div class="flex justify-between mb-4">
@@ -251,7 +82,7 @@
             </div>
         </div>
 
-        <!-- Mensajes -->
+        <!-- Área de Mensajes -->
         <div id="messagesArea" class="flex-1 overflow-y-auto p-4 space-y-4 pb-32">
             <div id="empty" class="text-center mt-20 opacity-70">
                 <i data-lucide="sparkles" class="w-20 h-20 mx-auto mb-4 text-purple-500"></i>
@@ -261,667 +92,57 @@
             <div id="messages" class="space-y-4"></div>
         </div>
 
-        <!-- Input con Preview de Imagen -->
+        <!-- Área de Input y Controles -->
         <div class="glass border-t border-white/10 p-4">
+            
+            <!-- Preview de Imagen -->
             <div id="imagePreview" class="hidden mb-2 relative max-w-xs mx-auto">
-                <img src="" alt="Preview" class="w-full rounded-lg">
-                <button id="removeImage" class="absolute top-2 right-2 bg-red-600 p-1 rounded-full text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
+                <img src="" alt="Preview" class="w-full rounded-lg shadow-lg">
+                <button id="removeImage" class="absolute -top-3 -right-3 bg-red-600 hover:bg-red-700 p-2 rounded-full text-white shadow-lg transition flex items-center justify-center w-8 h-8"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
+            
+            <!-- Controles: Attachments, Input, Send -->
             <div class="flex gap-3 max-w-4xl mx-auto items-center">
+                
+                <!-- Botón de Attachments con menú desplegable -->
                 <div class="relative">
                     <button id="scanBtn" class="p-4 rounded-full bg-gradient-to-r from-indigo-600 to-purple-700 hover:shadow-xl hover:shadow-indigo-500/50 transform hover:scale-110 transition" title="Adjuntar">
                         <i data-lucide="paperclip" class="w-6 h-6"></i>
                     </button>
-                    <div id="mediaMenu" class="hidden absolute bottom-full mb-2 right-0 w-44 bg-gray-800 rounded-lg shadow-lg border border-white/10 py-1 z-50">
-                        <button class="w-full text-left px-4 py-2 hover:bg-gray-700 transition media-option" data-action="gallery">Galería</button>
-                        <button class="w-full text-left px-4 py-2 hover:bg-gray-700 transition media-option" data-action="camera">Cámara</button>
+                    <div id="mediaMenu" class="hidden absolute bottom-full mb-2 right-0 w-48 rounded-lg shadow-lg border z-50">
+                        <button class="w-full text-left px-4 py-2 hover:opacity-80 transition media-option font-medium" data-action="gallery">📁 Galería</button>
                     </div>
                 </div>
-                <input type="text" id="input" placeholder="Escribe tu duda o adjunta una imagen..." 
-                       class="flex-1 px-6 py-4 rounded-full bg-white/10 border border-white/20 input-glow focus:border-purple-400 transition">
+                
+                <!-- Input principal para mensajes -->
+                <textarea id="input" placeholder="Escribe tu duda" 
+                       class="flex-1 px-6 py-4 rounded-2xl bg-white/10 border border-white/20 input-glow focus:border-purple-400 transition resize-none max-h-32" style="min-height: 44px; height: auto;"></textarea>
+                
+                <!-- Botón de enviar -->
                 <button id="send" class="p-4 rounded-full bg-gradient-to-r from-purple-600 to-indigo-700 hover:shadow-xl hover:shadow-purple-500/50 transform hover:scale-110 transition">
                     <i data-lucide="send" class="w-6 h-6"></i>
                 </button>
             </div>
+            
+            <!-- Input oculto para seleccionar archivos -->
             <input type="file" id="imageInput" accept="image/*" class="hidden">
-            <input type="file" id="cameraInput" accept="image/*" capture="environment" class="hidden">
         </div>
     </div>
 
-    <script>
-        // ====== CONFIGURACIÓN GROK 4.1 vía OpenRouter ======
-        const OPENROUTER_API_KEY = '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';
-        const MODEL = "x-ai/grok-4.1-fast:free";
+    <!-- Modal de Confirmación personalizado -->
+    <div id="confirmModal">
+        <div class="modal-content">
+            <div class="modal-title">⚠️ Confirmar eliminación</div>
+            <div class="modal-message">¿Estás seguro de que deseas eliminar este chat? Esta acción no se puede deshacer.</div>
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-cancel" onclick="closeConfirmModal()">Cancelar</button>
+                <button class="modal-btn modal-btn-confirm" onclick="confirmDelete()">Eliminar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript - Lógica de aplicación -->
+    <script src="script.js"></script>
 
-        const SYSTEM_PROMPT = `Eres TUTORIA, un tutor inteligente que SIEMPRE explica de forma CORTA y CLARA como un profesor real.
-REGLAS DE RESPUESTA:
-1. Respuestas MÁXIMO 5-6 líneas
-2. Usa ejemplos SIMPLES y PRÁCTICOS
-3. Explica como si hablaras con un alumno en persona
-4. Usa emojis educativos (máximo 2 por mensaje)
-5. Divide conceptos largos en pasos numerados
-FORMATO DE ENSEÑANZA:
-Después de CADA explicación, SIEMPRE pregunta:
-"¿Entendiste el tema?"
-Si dice SÍ: Genera un quiz
-Si dice NO: Re-explica con UN ejemplo diferente (máximo 5 líneas)
-FORMATO DE QUIZ (USA EXACTAMENTE ASÍ):
-Quiz: [pregunta aquí]
-- a) [opción 1]
-- b) [opción 2]
-- c) [opción 3]
-- d) [opción 4]
-Al evaluar respuestas del quiz:
-CRÍTICO: El usuario envía SOLO el literal (a) o b) o c) o d))
-- Extrae SOLO la letra de la respuesta correcta del quiz que generaste
-- Compara ÚNICAMENTE la letra (a, b, c, d) ignorando paréntesis, asteriscos, espacios
-- Si es CORRECTA: "¡Correcto! 🎉 [explicación en 1-2 líneas]"
-- Si es INCORRECTA: "No es correcto. La respuesta correcta es: *[literal con formato: b)]* [explicación breve del por qué]" (incluye el literal EXACTAMENTE como lo enviaste: "*b)*" por ejemplo)
-⚠️ IMPORTANTE: SÉ BREVE. Respuestas largas NO ayudan al aprendizaje.
-Si el mensaje incluye una imagen, descríbela y úsala en el contexto de la explicación.`;
-
-        let userName = localStorage.getItem('tutoria_userName') || '';
-        let currentChatId = localStorage.getItem('tutoria_currentChatId') || Date.now().toString();
-        let chats = JSON.parse(localStorage.getItem('tutoria_chats') || '{}');
-        if (!chats[currentChatId]) {
-            chats[currentChatId] = { messages: [], title: 'Nuevo Chat', createdAt: new Date().toISOString() };
-        }
-        let messages = chats[currentChatId].messages;
-        let isQuizMode = false;
-        let lastQuiz = null;
-        let darkMode = localStorage.getItem('tutoria_darkMode') !== 'false';
-
-        const welcome = document.getElementById('welcome');
-        const app = document.getElementById('app');
-        const nameInput = document.getElementById('nameInput');
-        const startBtn = document.getElementById('startBtn');
-        const greetingName = document.getElementById('greetingName');
-        const messagesDiv = document.getElementById('messages');
-        const input = document.getElementById('input');
-        const send = document.getElementById('send');
-        const empty = document.getElementById('empty');
-        const scanBtn = document.getElementById('scanBtn');
-        const imagePreview = document.getElementById('imagePreview');
-        const previewImg = imagePreview.querySelector('img');
-        const removeImage = document.getElementById('removeImage');
-        const imageInput = document.getElementById('imageInput');
-        const cameraInput = document.getElementById('cameraInput');
-        const menuBtn = document.getElementById('menuBtn');
-        const sidebar = document.getElementById('sidebar');
-        const closeSidebar = document.getElementById('closeSidebar');
-        const newChatBtn = document.getElementById('newChatBtn');
-        const chatList = document.getElementById('chatList');
-        const themeBtn = document.getElementById('themeBtn');
-        const messagesArea = document.getElementById('messagesArea');
-
-        let selectedImage = null;
-
-        // NOTE: Removed global full-screen loader; keep only in-chat typing animation.
-
-        // ====== TEMAS ======
-        function applyTheme() {
-            if (!darkMode) {
-                document.body.classList.add('light-theme');
-                themeBtn.innerHTML = '<i data-lucide="sun" class="w-6 h-6"></i>';
-            } else {
-                document.body.classList.remove('light-theme');
-                themeBtn.innerHTML = '<i data-lucide="moon" class="w-6 h-6"></i>';
-            }
-            localStorage.setItem('tutoria_darkMode', darkMode);
-            lucide.createIcons();
-        }
-        applyTheme();
-
-        themeBtn.onclick = () => {
-            darkMode = !darkMode;
-            applyTheme();
-        };
-
-        // ====== GENERAR ESTRELLAS Y PARTÍCULAS ======
-        function createStars() {
-            const container = document.getElementById('particles');
-            for(let i = 0; i < 150; i++) {
-                const star = document.createElement('div');
-                star.classList.add('stars');
-                star.style.left = Math.random() * 100 + '%';
-                star.style.top = Math.random() * 100 + '%';
-                star.style.animationDelay = Math.random() * 6 + 's';
-                container.appendChild(star);
-            }
-            for(let i = 0; i < 30; i++) {
-                const p = document.createElement('div');
-                p.classList.add('particle');
-                p.style.width = p.style.height = Math.random() * 5 + 3 + 'px';
-                p.style.left = Math.random() * 100 + '%';
-                p.style.animationDuration = Math.random() * 20 + 15 + 's';
-                p.style.animationDelay = Math.random() * 10 + 's';
-                container.appendChild(p);
-            }
-        }
-        createStars();
-
-        // ====== INICIAR APP ======
-        if(userName) {
-            startApp(userName);
-        } else {
-            welcome.classList.remove('hidden');
-            app.classList.add('hidden');
-        }
-
-        startBtn.onclick = () => {
-            const name = nameInput.value.trim();
-            if(name) {
-                userName = name;
-                localStorage.setItem('tutoria_userName', name);
-                startApp(name);
-            }
-        };
-
-        function startApp(name) {
-            welcome.classList.add('hidden');
-            app.classList.remove('hidden');
-            greetingName.textContent = name;
-            lucide.createIcons();
-            renderMessages();
-            renderChatList();
-        }
-
-        // ====== HISTORIAL AVANZADO ======
-        menuBtn.onclick = () => sidebar.classList.remove('hidden');
-        closeSidebar.onclick = () => sidebar.classList.add('hidden');
-        newChatBtn.onclick = () => {
-            currentChatId = Date.now().toString();
-            chats[currentChatId] = { messages: [], title: 'Nuevo Chat', createdAt: new Date().toISOString() };
-            messages = chats[currentChatId].messages;
-            saveChats();
-            renderChatList();
-            renderMessages();
-            sidebar.classList.add('hidden');
-        };
-
-        function renderChatList() {
-            chatList.innerHTML = '';
-            Object.entries(chats).sort((a, b) => new Date(b[1].createdAt) - new Date(a[1].createdAt)).forEach(([id, chat]) => {
-                const div = document.createElement('div');
-                div.className = 'chat-item flex justify-between items-center p-3 bg-gray-800 rounded-lg hover:bg-gray-700 transition';
-                div.innerHTML = `
-                    <div class="flex-1">
-                        <p class="font-bold truncate">${chat.title}</p>
-                            <p class="text-sm opacity-70">${getExactTime(new Date(chat.createdAt))}</p>
-                    </div>
-                    <button class="deleteChat text-red-500 p-1" data-id="${id}"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                `;
-                div.querySelector('.deleteChat').onclick = (e) => {
-                    e.stopPropagation();
-                    delete chats[id];
-                    if (id === currentChatId) {
-                        const keys = Object.keys(chats);
-                        currentChatId = keys.length ? keys[0] : Date.now().toString();
-                        if (!chats[currentChatId]) chats[currentChatId] = { messages: [], title: 'Nuevo Chat', createdAt: new Date().toISOString() };
-                        messages = chats[currentChatId].messages;
-                    }
-                    saveChats();
-                    renderChatList();
-                    renderMessages();
-                };
-                div.onclick = () => {
-                    currentChatId = id;
-                    messages = chats[id].messages;
-                    localStorage.setItem('tutoria_currentChatId', id);
-                    renderMessages();
-                    sidebar.classList.add('hidden');
-                };
-                chatList.appendChild(div);
-            });
-            lucide.createIcons();
-            // lista de chats muestra solo hora exacta ahora
-        }
-
-        function getRelativeTime(date) {
-            const now = new Date();
-            const diff = now - date;
-            const seconds = Math.floor(diff / 1000);
-            const minutes = Math.floor(seconds / 60);
-            const hours = Math.floor(minutes / 60);
-            const days = Math.floor(hours / 24);
-
-            if (seconds < 60) return 'hace unos segundos';
-            if (minutes < 60) return `hace ${minutes} minuto${minutes > 1 ? 's' : ''}`;
-            if (hours < 24) return `hace ${hours} hora${hours > 1 ? 's' : ''}`;
-            if (days === 1) return 'Ayer';
-            if (days < 7) return `hace ${days} días`;
-            return date.toLocaleDateString();
-        }
-
-        function getExactTime(date) {
-            try {
-                return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            } catch (e) {
-                const hh = String(date.getHours()).padStart(2, '0');
-                const mm = String(date.getMinutes()).padStart(2, '0');
-                return `${hh}:${mm}`;
-            }
-        }
-
-        // NOTE: Removed dynamic relative-time updater; showing only exact HH:MM per user request.
-
-        function saveChats() {
-            localStorage.setItem('tutoria_chats', JSON.stringify(chats));
-            localStorage.setItem('tutoria_currentChatId', currentChatId);
-        }
-
-        // ====== RENDER MENSAJES DESDE CACHE ======
-        function renderMessages() {
-            messagesDiv.innerHTML = '';
-            if (messages.length === 0) {
-                empty.classList.remove('hidden');
-            } else {
-                empty.classList.add('hidden');
-                messages.forEach(msg => {
-                    addMessage(msg.content, msg.role, msg.image || null, msg.timestamp, false);
-                });
-            }
-            scrollToBottom();
-        }
-
-        // ====== ENVIAR MENSAJE OPTIMIZADO ======
-        async function sendMessage(userChoice) {
-            const inputText = input.value.trim();
-            // si se pasa userChoice (por ejemplo 'a' del quiz), usarlo como texto
-            const textToSend = (typeof userChoice !== 'undefined' && userChoice !== null) ? String(userChoice) : inputText;
-            if(!textToSend && !selectedImage) return;
-
-            // Mensaje usuario con imagen si hay
-            const messageTimestamp = new Date().toISOString();
-            addMessage(textToSend, 'user', selectedImage, messageTimestamp);
-            // limpiar input solo si se envió desde la caja de texto
-            if (typeof userChoice === 'undefined' || userChoice === null) input.value = '';
-            clearImagePreview();
-            showTyping();
-
-            try {
-                // Si hay imagen, primero intentar OCR local con Tesseract
-                let imageAnalysisInfo = '';
-                let ocrResult = null;
-                let remoteResult = null;
-                if (selectedImage) {
-                    try {
-                        ocrResult = await analyzeImage(selectedImage);
-                        if (ocrResult && ocrResult.text && ocrResult.text.trim().length > 10) {
-                            imageAnalysisInfo = `Texto detectado en la imagen: ${ocrResult.text.trim().slice(0,2000)}`;
-                        } else {
-                            // Si no hay texto suficiente, intentar análisis remoto para describir la imagen
-                            remoteResult = await remoteDescribeImage(selectedImage);
-                            if (remoteResult && remoteResult.description) {
-                                imageAnalysisInfo = `Descripción automática: ${remoteResult.description.slice(0,2000)}`;
-                            }
-                        }
-                    } catch (err) {
-                        console.warn('Error analizando imagen localmente', err);
-                    }
-                    // Guardar metadata del análisis en el mensaje del usuario (persistente)
-                    try {
-                        const idx = messages.findIndex(m => m.timestamp === messageTimestamp && m.role === 'user');
-                        if (idx >= 0) {
-                            messages[idx].imageAnalysis = {
-                                ocrText: ocrResult?.text || '',
-                                remoteDescription: remoteResult?.description || '',
-                                summary: imageAnalysisInfo
-                            };
-                            saveChats();
-                        }
-                    } catch (err) {
-                        console.warn('Error guardando metadata de imagen en cache', err);
-                    }
-                }
-
-                const allMessages = [
-                    { role: "system", content: SYSTEM_PROMPT },
-                    ...messages.map(m => ({ role: m.role, content: m.content })),
-                    { role: "user", content: (textToSend || "Analiza esta imagen") + (imageAnalysisInfo ? `\n[Imagen adjunta: ${imageAnalysisInfo}]` : '') }
-                ];
-
-                const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-                    method: "POST",
-                    headers: {
-                        "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-                        "Content-Type": "application/json",
-                        "HTTP-Referer": window.location.origin,
-                        "X-Title": "TutorIA"
-                    },
-                    body: JSON.stringify({
-                        model: MODEL,
-                        messages: allMessages,
-                        temperature: 0.8,
-                        max_tokens: 300  // Reducido para respuestas más rápidas
-                    })
-                });
-
-                const data = await res.json();
-                const reply = data.choices[0]?.message?.content || "Lo siento, hubo un error. Intenta de nuevo.";
-
-                removeTyping();
-                addMessage(reply, 'assistant', null, new Date().toISOString());
-
-            } catch(err) {
-                removeTyping();
-                addMessage("Ups, error de conexión. Prueba otra vez 📡", 'assistant', null, new Date().toISOString());
-            }
-        }
-
-        // ====== UI MENSAJES CON MARKDOWN Y MATHJAX ======
-        function addMessage(text, sender, image = null, timestamp = new Date().toISOString(), save = true) {
-            empty.classList.add('hidden');
-            const div = document.createElement('div');
-            div.className = `message flex ${sender === 'user' ? 'justify-end' : 'justify-start'} animate-slide-up`;
-            
-            const bubble = document.createElement('div');
-            bubble.className = `max-w-[80%] px-5 py-4 rounded-3xl shadow-xl ${sender === 'user' ? 'msg-user' : 'msg-assistant'} border ${sender === 'user' ? '' : 'border-white/20'}`;
-            
-            if (image) {
-                const img = document.createElement('img');
-                img.src = image;
-                img.className = 'w-full mb-2 rounded-lg';
-                bubble.appendChild(img);
-            }
-
-            // Soporte Markdown con tablas
-            let parsed = marked.parse(text);
-            parsed = parsed.replace(/<table>/g, '<table class="table-auto w-full border-collapse border border-gray-300">')
-                          .replace(/<th>/g, '<th class="border border-gray-300 px-4 py-2">')
-                          .replace(/<td>/g, '<td class="border border-gray-300 px-4 py-2">');
-
-            const textDiv = document.createElement('div');
-            textDiv.innerHTML = parsed;
-            bubble.appendChild(textDiv);
-
-            const timeP = document.createElement('p');
-            timeP.className = 'text-xs opacity-50 mt-1 text-right';
-            const tsDate = new Date(timestamp);
-            timeP.textContent = getExactTime(tsDate);
-            bubble.appendChild(timeP);
-
-            // Detectar si es quiz
-            if (sender === 'assistant' && text.startsWith('Quiz:')) {
-                isQuizMode = true;
-                lastQuiz = text;
-                renderQuiz(bubble, text);
-            }
-
-            div.appendChild(bubble);
-            messagesDiv.appendChild(div);
-
-            // Guardar mensaje si se pide
-            if (save) {
-                messages.push({ content: text, role: sender, image: image || null, timestamp: timestamp, imageAnalysis: null });
-                saveChats();
-            }
-
-            // Render MathJax para matemáticas
-            scrollToBottom();
-        }
-
-        // ====== RENDER QUIZ CON RADIO BUTTONS ======
-        function renderQuiz(bubble, text) {
-            const lines = text.split('\n');
-            const title = lines[0] || 'Quiz';
-            const options = lines.slice(1).filter(l => l.trim().startsWith('- '));
-
-            const container = document.createElement('div');
-            const titleP = document.createElement('p');
-            titleP.className = 'font-bold mb-2';
-            titleP.textContent = title;
-            container.appendChild(titleP);
-
-            options.forEach((opt, index) => {
-                const letter = ['a', 'b', 'c', 'd'][index] || String(index + 1);
-                const label = document.createElement('label');
-                label.className = 'flex items-center gap-2 mb-2 cursor-pointer';
-                label.htmlFor = `quiz_opt_${index}`;
-
-                const input = document.createElement('input');
-                input.type = 'radio';
-                input.name = 'quiz';
-                input.value = letter;
-                input.id = `quiz_opt_${index}`;
-                input.className = 'quiz-option w-5 h-5';
-
-                const span = document.createElement('span');
-                span.innerHTML = opt;
-
-                label.appendChild(input);
-                label.appendChild(span);
-                container.appendChild(label);
-            });
-
-            const submitBtn = document.createElement('button');
-            submitBtn.id = 'submitQuiz';
-            submitBtn.disabled = true;
-            submitBtn.className = 'mt-4 px-4 py-2 rounded-lg bg-indigo-600 text-white font-bold transition';
-            submitBtn.textContent = 'Enviar respuesta';
-            container.appendChild(submitBtn);
-
-            const target = bubble.querySelector('div');
-            if (target) {
-                target.innerHTML = '';
-                target.appendChild(container);
-            }
-
-            const radios = container.querySelectorAll('input[name="quiz"]');
-            radios.forEach(r => r.addEventListener('change', () => {
-                submitBtn.disabled = false;
-                submitBtn.classList.add('quiz-glow-dark', 'quiz-glow-light');
-            }));
-
-            submitBtn.addEventListener('click', () => {
-                const selected = container.querySelector('input[name="quiz"]:checked');
-                if (selected) {
-                    submitBtn.disabled = true;
-                    submitBtn.classList.add('opacity-60', 'cursor-not-allowed');
-                    submitBtn.classList.remove('quiz-glow-dark', 'quiz-glow-light');
-                    sendMessage(selected.value);
-                    isQuizMode = false;
-                } else {
-                    alert('Selecciona una opción primero');
-                }
-            });
-        }
-
-        function showTyping() {
-            const div = document.createElement('div');
-            div.id = 'typing';
-            div.className = 'message flex justify-start animate-slide-up';
-            div.innerHTML = `
-                <div class="px-5 py-4 rounded-3xl msg-assistant border border-white/20">
-                    <div class="typing">
-                        <span></span><span></span><span></span>
-                    </div>
-                </div>`;
-            messagesDiv.appendChild(div);
-            scrollToBottom();
-        }
-
-        function removeTyping() {
-            const typing = document.getElementById('typing');
-            if(typing) typing.remove();
-        }
-
-        function scrollToBottom() {
-            messagesArea.scrollTop = messagesArea.scrollHeight;
-        }
-
-        // ====== PREVIEW IMAGEN ======
-        const mediaMenu = document.getElementById('mediaMenu');
-        scanBtn.onclick = (e) => {
-            e.stopPropagation();
-            mediaMenu.classList.toggle('hidden');
-        };
-
-        // Cerrar menú al hacer clic fuera
-        document.addEventListener('click', (e) => {
-            if (!mediaMenu.contains(e.target) && e.target !== scanBtn) {
-                mediaMenu.classList.add('hidden');
-            }
-        });
-
-        // Manejar opciones del menú (Galería / Cámara)
-        document.querySelectorAll('.media-option').forEach(btn => {
-            btn.addEventListener('click', async (ev) => {
-                const action = btn.dataset.action;
-                mediaMenu.classList.add('hidden');
-                if (action === 'gallery') {
-                    imageInput.click();
-                } else if (action === 'camera') {
-                    try {
-                        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-                        stream.getTracks().forEach(track => track.stop());
-                        cameraInput.click();
-                    } catch (err) {
-                        alert('Permiso de cámara denegado o no disponible. Abriendo galería.');
-                        imageInput.click();
-                    }
-                }
-            });
-        });
-
-        function handleImageInput(fileInput) {
-            fileInput.onchange = e => {
-                const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = ev => {
-                        selectedImage = ev.target.result;
-                        previewImg.src = selectedImage;
-                        imagePreview.classList.remove('hidden');
-                        updateSendState();
-                    };
-                    reader.readAsDataURL(file);
-                }
-            };
-        }
-
-        // ====== ANALISIS DE IMAGEN (OCR y fallback remoto) ======
-        async function analyzeImage(dataUrl) {
-            try {
-                const { createWorker } = Tesseract;
-                const worker = createWorker({ logger: m => {} });
-                await worker.load();
-                await worker.loadLanguage('eng+spa');
-                await worker.initialize('eng+spa');
-                const { data: { text } } = await worker.recognize(dataUrl);
-                await worker.terminate();
-                return { text };
-            } catch (err) {
-                console.warn('Tesseract error', err);
-                return { text: '' };
-            }
-        }
-
-        // Describir imagen usando OpenRouter (modelo de texto) como fallback
-        async function remoteDescribeImage(dataUrl) {
-            try {
-                // Prompt mejorado para describir objetos, escenas, pizarras, memes, animales, y transcribir texto si existe.
-                const prompt = `Eres un asistente de visión: analiza la imagen adjunta y responde con secciones claras.\n+1) TIPO: indica la categoría más probable (meme / pizarra / foto de producto / animal / escena / captura de pantalla / otro).
-2) OBJETOS: lista breve de objetos detectados (separados por comas).
-3) ESCENA: interior/exterior, contexto probable (aula, oficina, hogar, parque, etc.).
-4) TRANSCRIPCION: si hay texto legible, transcribe sin comentarios; si no, escribe "N/A".
-5) RESUMEN: explica en 2-4 líneas qué muestra la imagen y, si el usuario pidiera "Explícame esto", da una explicación pedagógica breve y un ejemplo práctico.
-6) SI ES MEME: explica en 1-2 líneas por qué es gracioso.
-Devuelve la respuesta formateada con encabezados en MAYÚSCULAS y contenido conciso. Usa español. No añadas otras secciones.`;
-
-                const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-                    method: "POST",
-                    headers: {
-                        "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-                        "Content-Type": "application/json",
-                        "HTTP-Referer": window.location.origin,
-                        "X-Title": "TutorIA-ImageDescribe"
-                    },
-                    body: JSON.stringify({
-                        model: MODEL,
-                        messages: [
-                            { role: 'system', content: prompt },
-                            { role: 'user', content: `ANALIZA ESTA IMAGEN (BASE64):\n${dataUrl}` }
-                        ],
-                        temperature: 0.2,
-                        max_tokens: 400
-                    })
-                });
-                const data = await res.json();
-                const desc = data.choices?.[0]?.message?.content || '';
-                return { description: desc };
-            } catch (err) {
-                console.warn('remoteDescribeImage error', err);
-                return { description: '' };
-            }
-        }
-
-        handleImageInput(imageInput);
-        handleImageInput(cameraInput);
-
-        removeImage.onclick = clearImagePreview;
-
-        function clearImagePreview() {
-            selectedImage = null;
-            imagePreview.classList.add('hidden');
-            previewImg.src = '';
-            updateSendState();
-        }
-
-        // ====== EVENTOS ======
-        // Enable/disable send button depending on input or image presence
-        function updateSendState() {
-            const hasText = input.value.trim().length > 0;
-            const hasImage = !!selectedImage;
-            if (hasText || hasImage) {
-                send.removeAttribute('disabled');
-                send.classList.remove('disabled');
-            } else {
-                send.setAttribute('disabled', '');
-                send.classList.add('disabled');
-            }
-        }
-
-        send.onclick = () => {
-            // prevent sending if disabled
-            if (send.hasAttribute('disabled')) return;
-            sendMessage();
-        };
-
-        input.addEventListener('keypress', e => {
-            if(e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                if (!send.hasAttribute('disabled')) sendMessage();
-            }
-        });
-        input.addEventListener('input', () => { scrollToBottom(); updateSendState(); });
-
-        // Init send state
-        updateSendState();
-
-        lucide.createIcons();
-        // Prevent gesture-based zoom on some mobile browsers (iOS Safari)
-        try {
-            document.addEventListener('gesturestart', function(e) { e.preventDefault(); });
-        } catch (e) {}
-
-        // Avatar fixed to provided URL (uploader removed)
-        (function setFixedAvatar() {
-            const avatarImg = document.getElementById('avatarImg');
-            const avatarIcon = document.getElementById('avatarIcon');
-            try {
-                if (avatarImg) {
-                    const imgUrl = 'https://i.ibb.co/Hp4dKcQn/tutoria-icono.jpg';
-                    avatarImg.src = imgUrl;
-                    avatarImg.onerror = () => {
-                        avatarImg.classList.add('hidden');
-                        if (avatarIcon) avatarIcon.classList.remove('hidden');
-                    };
-                    avatarImg.classList.remove('hidden');
-                }
-                if (avatarIcon) avatarIcon.classList.add('hidden');
-            } catch (err) { console.warn('Could not set fixed avatar', err); }
-        })();
-    </script>
 </body>
 </html>
