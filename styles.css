@@ -446,7 +446,7 @@ html, body {
 /* Tablets y pantallas medianas (768px y menos) */
 @media (max-width: 768px) {
     body {
-        font-size: 14px;
+        font-size: 16px;
     }
 
     .chat-container {
@@ -554,7 +554,7 @@ html, body {
 /* Móviles pequeños (480px y menos) */
 @media (max-width: 480px) {
     body {
-        font-size: 13px;
+        font-size: 15px;
     }
 
     header {
@@ -577,7 +577,7 @@ html, body {
     .message > div {
         max-width: 90% !important;
         padding: 8px 12px !important;
-        font-size: 13px !important;
+        font-size: 15px !important;
     }
 
     .msg-user, .msg-assistant {
@@ -629,12 +629,12 @@ html, body {
     }
 
     label[for^="quiz_opt_"] {
-        font-size: 13px !important;
+        font-size: 15px !important;
         min-height: 40px !important;
     }
 
     #submitQuiz {
-        font-size: 13px !important;
+        font-size: 15px !important;
         min-height: 40px !important;
     }
 }
@@ -642,7 +642,7 @@ html, body {
 /* Móviles ultra pequeños (max 360px) */
 @media (max-width: 360px) {
     body {
-        font-size: 12px;
+        font-size: 14px;
     }
 
     header {
@@ -660,7 +660,7 @@ html, body {
     .message > div {
         max-width: 95% !important;
         padding: 6px 10px !important;
-        font-size: 12px !important;
+        font-size: 14px !important;
     }
 
     #input {
