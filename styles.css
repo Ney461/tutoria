@@ -859,17 +859,38 @@ html, body {
     color: #111827 !important;
 }
 
-/* Items del chat en tema claro */
+/* Items del chat - word-wrap para títulos largos */
+.chat-item p.font-bold {
+    word-wrap: break-word;
+    word-break: break-word;
+    white-space: normal;
+    overflow-wrap: break-word;
+}
+
 .light-theme .chat-item {
-    /* Color ligeramente azulado para armonizar con las burbujas azules
-       y mejorar contraste sobre el fondo claro. */
-    background: #eef2ff !important;
+    background: #f3f4f6 !important;
     color: #111827 !important;
-    border: 1px solid #d1d5db !important;
+    border: 1px solid #e5e7eb !important;
+    border-radius: 12px !important;
 }
 
 .light-theme .chat-item p {
     color: #1f2937 !important;
+    margin: 0 !important;
+}
+
+.light-theme .chat-item p.font-bold {
+    color: #111827 !important;
+    font-weight: 700 !important;
+    word-wrap: break-word;
+    word-break: break-word;
+    white-space: normal;
+    overflow-wrap: break-word;
+}
+
+.light-theme .chat-item p.opacity-70 {
+    color: #9ca3af !important;
+    font-size: 12px !important;
 }
 
 .light-theme .chat-item .font-bold {

@@ -25,7 +25,7 @@ Tono: Paciente, empático, motivador. Eres su profe, no Wikipedia.`;
 
 
 // ======== SISTEMA DE ROTACIÓN DE API KEYS CON EMAILS ========
-const API_KEYS_POOL = [
+const API_KEYS_ORIGINAL = [
     {
         key: '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',
         email: 'lavadorala7@gmail.com'
@@ -43,6 +43,9 @@ const API_KEYS_POOL = [
         email: 'andresburgo38@gmail.com'
     }
 ];
+
+// Lista actualizada que se modifica durante ejecución
+let API_KEYS_POOL = JSON.parse(JSON.stringify(API_KEYS_ORIGINAL));
 let currentKeyIndex = 0;
 
 /**
@@ -65,13 +68,19 @@ function getCurrentEmail() {
 
 /**
  * Rota hacia la siguiente API key disponible
- * @returns {boolean} true si hay más keys, false si se agotaron
+ * Si se agotan todas, reinicia la lista desde la original
+ * @returns {boolean} true si hay más keys disponibles
  */
 function rotateApiKey() {
     currentKeyIndex++;
     if (currentKeyIndex >= API_KEYS_POOL.length) {
-        console.error('❌ [API KEYS] No más API keys disponibles. Se han agotado todas las claves.');
-        return false;
+        console.warn('⚠️ [API KEYS] Se agotaron todas las claves. Reiniciando lista original...');
+        // Reiniciar lista desde la original
+        API_KEYS_POOL = JSON.parse(JSON.stringify(API_KEYS_ORIGINAL));
+        currentKeyIndex = 0;
+        console.log('♻️ [API KEYS] Lista reiniciada desde la original');
+        console.log(`📧 [CORREO ACTIVO] ${getCurrentEmail()}`);
+        return true;
     }
     console.log(`🔄 [API KEYS] Rotando a la siguiente API key. Índice actual: ${currentKeyIndex + 1}/${API_KEYS_POOL.length}`);
     console.log(`📧 [CORREO ACTIVO] ${getCurrentEmail()}`);
