@@ -1065,7 +1065,7 @@ async function sendMessage(userChoice) {
         // Mostrar error amable al usuario en el chat
         let errorMsg = "❌ Hubo un error procesando tu mensaje. ";
         if (err.message.includes('API') || err.message.includes('network')) {
-            errorMsg += "Verifica tu conexión a internet y intenta de nuevo.";
+            errorMsg += "Estamos presentando fallos, intenta de nuevo en unos breves minutos :D";
         } else if (err.message.includes('OCR')) {
             errorMsg += "Error en el reconocimiento de imagen. Intenta con otra imagen.";
         } else {
@@ -2850,4 +2850,5 @@ input.addEventListener('keydown', () => {
 
 // FUERZA: Asegurar que body/html nunca tengan scroll
 document.body.style.overflow = 'hidden';
+
 document.documentElement.style.overflow = 'hidden';
