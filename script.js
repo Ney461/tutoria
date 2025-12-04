@@ -235,20 +235,56 @@ createStars();
 /**
  * Verifica si el usuario ya tiene nombre guardado y lo carga
  */
-if(userName) {
+if(userName && userName.trim().length > 0) {
+    hasValidatedName = true; // Marcar como ya validado si hay nombre guardado
     startApp(userName);
 } else {
     welcome.classList.remove('hidden');
     app.classList.add('hidden');
 }
 
+/**
+ * Valida el input del nombre y habilita/deshabilita el botón
+ */
+let hasValidatedName = false; // Bandera de seguridad
+
+function validateNameInput() {
+    const name = nameInput.value.trim();
+    if (name.length >= 1) {
+        startBtn.removeAttribute('disabled');
+        startBtn.style.opacity = '1';
+        startBtn.style.cursor = 'pointer';
+    } else {
+        startBtn.setAttribute('disabled', 'disabled');
+        startBtn.style.opacity = '0.5';
+        startBtn.style.cursor = 'not-allowed';
+    }
+}
+
+// Event listener para validar nombre en tiempo real
+nameInput.addEventListener('input', validateNameInput);
+nameInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && nameInput.value.trim().length >= 1) {
+        startBtn.click();
+    }
+});
+
+// Inicializar estado del botón como deshabilitado
+startBtn.setAttribute('disabled', 'disabled');
+
 // Event listener para botón "Comenzar"
 startBtn.onclick = () => {
     const name = nameInput.value.trim();
-    if(name) {
+    if(name && name.length >= 1) {
         userName = name;
         localStorage.setItem('tutoria_userName', name);
+        hasValidatedName = true; // ✅ Marcar como validado
         startApp(name);
+    } else {
+        console.warn('⚠️ [VALIDACIÓN] Nombre vacío. Bloqueando acceso.');
+        nameInput.focus();
+        nameInput.classList.add('shake');
+        setTimeout(() => nameInput.classList.remove('shake'), 500);
     }
 };
 
@@ -257,6 +293,31 @@ startBtn.onclick = () => {
  * @param {string} name - Nombre del usuario
  */
 function startApp(name) {
+    // ✅ GUARD: Validar que el nombre sea válido
+    if (!name || name.trim().length < 1) {
+        console.error('❌ [FATAL] startApp llamado sin nombre válido. Bloqueando.');
+        hasValidatedName = false;
+        return; // Prevenir acceso a la app
+    }
+    
+    // ✅ GUARD: Validar que userName esté seteado
+    if (!userName || userName.trim().length < 1) {
+        console.error('❌ [FATAL] userName no está seteado. Bloqueando.');
+        hasValidatedName = false;
+        return; // Prevenir acceso a la app
+    }
+    
+    // ✅ GUARD: Validar que hasValidatedName sea true
+    if (!hasValidatedName) {
+        console.error('❌ [FATAL] Intento de acceso sin validación. Bloqueando.');
+        return; // Prevenir acceso a la app
+    }
+    
+    console.log('✅ [ACCESO] Todas las validaciones pasadas. Accediendo a la app...');
+    
+    // ✅ Agregar clase unlocked para permitir interacción
+    app.classList.add('unlocked');
+    
     welcome.classList.add('hidden');
     app.classList.remove('hidden');
     greetingName.textContent = name;
@@ -2772,5 +2833,4 @@ input.addEventListener('focus', () => {
 // Detectar también cuando el usuario empieza a escribir
 input.addEventListener('keydown', () => {
     messagesArea.scrollTop = messagesArea.scrollHeight;
-
 });

@@ -186,6 +186,17 @@ html, body {
     50% { transform: translateY(-10px); }
 }
 
+/* ===== ANIMACIÓN SHAKE (TEMBLOR) ===== */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+.shake {
+    animation: shake 0.5s ease-in-out !important;
+}
+
 /* ===== SCROLLBAR PERSONALIZADO ===== */
 ::-webkit-scrollbar {
     width: 4px;
@@ -1055,4 +1066,18 @@ html, body {
 .light-theme .quiz-glow-light {
     box-shadow: 0 8px 24px rgba(59, 130, 246, 0.25), 0 0 18px rgba(59, 130, 246, 0.45) !important;
     transform: translateY(-2px);
+}
+
+/* ===== PROTECCIÓN DE ACCESO - PANTALLA BLOQUEADA ===== */
+/* Bloquear cualquier interacción con la app antes de validar nombre */
+#app:not(.unlocked) {
+    pointer-events: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+#welcome {
+    pointer-events: auto !important;
+    opacity: 1 !important;
+    visibility: visible !important;
 }
