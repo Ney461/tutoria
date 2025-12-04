@@ -15,10 +15,17 @@ ESTRATEGIA:
 4. Si dice "sí" o "entendí" → CONTINÚA profundizando poco a poco
 5. Si dice "no" o "confuso" → CAMBIA estrategia con ejemplos diferentes
 
+⚠️ IMPORTANTE - REGLAS SOBRE QUIZES:
+- NUNCA generes opciones de respuesta en texto (A), B), C), D))
+- NUNCA muestres preguntas con opciones literales en tu respuesta
+- Solo sugiere: "¿Quieres hacer un Quiz rápido para practicar?"
+- NO des opciones de múltiple opción en texto - las opciones son interactivas en la app
+- El sistema mostrará automáticamente los quizes con radio buttons
+
 IMPORTANTE - NO APURES:
 - Responde en 5-7 líneas máximo (no cortado)
 - USA emojis ocasionales para hacer ameno
-- DESPUÉS DE 2-3 INTERCAMBIOS: pregunta "¿Quieres hacer un Quiz para practicar o prefieres una Explicación?"
+- DESPUÉS DE 2-3 INTERCAMBIOS: pregunta "¿Quieres hacer un Quiz rápido para practicar o prefieres una Explicación?"
 - Solo ofrece Quiz/Explicación cuando el estudiante ya entienda bien el tema
 
 Tono: Paciente, empático, motivador. Eres su profe, no Wikipedia.`;
@@ -169,6 +176,8 @@ let selectedImage = null;
 let isInQuizMode = false;
 let quizAnswers = {};
 let isShowingQuizOptions = false;
+let newChatDebounce = false;
+let quizFinalized = false; // ✅ Bandera para saber si el quiz final fue completado
 
 // ======== GESTIÓN DE TEMAS (CLARO/OSCURO) ========
 /**
@@ -273,28 +282,172 @@ closeSidebar.onclick = () => sidebar.classList.add('hidden');
  * Crea un nuevo chat
  */
 newChatBtn.onclick = () => {
+    // Evitar múltiples clics rápidos
+    if (newChatDebounce) return;
+    newChatDebounce = true;
+    
+    const previousChatId = currentChatId;
+    
+    // 1. Crear nuevo chat PRIMERO
     currentChatId = Date.now().toString();
-    chats[currentChatId] = { messages: [], title: 'Nuevo Chat', createdAt: new Date().toISOString() };
+    chats[currentChatId] = { 
+        messages: [], 
+        title: 'Nuevo Chat', 
+        createdAt: new Date().toISOString(),
+        quizFinalized: false  // ✅ Inicializar bandera
+    };
     messages = chats[currentChatId].messages;
-    exchangeCount = 0; // ← RESET contador de intercambios
+    exchangeCount = 0;
+    quizFinalized = false;  // ✅ Resetear bandera global
+    send.removeAttribute('disabled');
+    send.classList.remove('disabled');
     saveChats();
     renderChatList();
     renderMessages();
     sidebar.classList.add('hidden');
+    
+    // 2. Luego finalizar el título del chat anterior
+    finalizeChatTitle(previousChatId).then(() => {
+        newChatDebounce = false; // Permitir nuevos clics
+    });
 };
 
 /**
+ * Finaliza y guarda el título del chat actual o especificado
+ * Se llama cuando se cambia de chat o se cierra uno
+ * @param {string} chatIdToFinalize - ID del chat a finalizar (opcional, usa currentChatId si no se proporciona)
+ */
+async function finalizeChatTitle(chatIdToFinalize = null) {
+    const targetChatId = chatIdToFinalize || currentChatId;
+    if (!chats[targetChatId] || chats[targetChatId].title !== 'Nuevo Chat') {
+        return;
+    }
+
+    const newTitle = await generateChatTitleWithAI(chats[targetChatId].messages);
+    if (newTitle !== 'Nuevo Chat') {
+        chats[targetChatId].title = newTitle;
+        saveChats();
+        renderChatList();
+    }
+}
+
+/**
+ * Genera un título inteligente usando la IA basado en toda la conversación
+ * Máximo 10-15 palabras, descriptivo del tema
+ * @param {Array} chatMessages - Mensajes del chat
+ * @returns {Promise<string>} Título generado
+ */
+async function generateChatTitleWithAI(chatMessages) {
+    try {
+        if (chatMessages.length < 4) {
+            return 'Nuevo Chat';
+        }
+
+        // Obtener contexto: primeros 2-3 intercambios del chat
+        const contextMessages = chatMessages.slice(0, 8)
+            .map(m => `${m.role === 'user' ? 'U' : 'A'}: ${m.content.substring(0, 120)}`)
+            .join('\n');
+
+        const prompt = `Eres experto en resumir temas educativos. Analiza esta conversación y genera un TÍTULO DESCRIPTIVO (10-15 palabras) que resuma el tema principal discutido.
+
+CONVERSACIÓN:
+${contextMessages}
+
+REQUISITOS:
+- 10-15 palabras máximo
+- Descripción clara del TEMA (no preguntas vagas)
+- Formato: "Tema: subtema" o similar
+- En español
+- SIN comillas ni caracteres especiales al inicio/final
+- Ejemplo: "Protección de Cables en Redes: Alien Crosstalk y Blindaje Individual"
+
+Responde SOLO con el título, nada más:`;
+
+        const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getCurrentApiKey()}`
+            },
+            body: JSON.stringify({
+                model: MODEL,
+                messages: [
+                    {
+                        role: "system",
+                        content: "Eres un generador de títulos para temas educativos. Sé conciso y descriptivo."
+                    },
+                    {
+                        role: "user",
+                        content: prompt
+                    }
+                ],
+                temperature: 0.3,
+                max_tokens: 50
+            })
+        });
+
+        if (!res.ok) {
+            console.warn('⚠️ [TITLE] Error generando título:', res.status);
+            return 'Nuevo Chat';
+        }
+
+        const data = await res.json();
+        let title = data.choices[0]?.message?.content?.trim() || 'Nuevo Chat';
+
+        // Limpiar el título
+        title = title
+            .replace(/^["'`*\-\s]+|["'`*\-\s]+$/g, '') // Remover caracteres especiales
+            .replace(/\n/g, ' ') // Remover saltos de línea
+            .trim()
+            .substring(0, 100); // Máximo 100 caracteres
+
+        console.log('✅ [TITLE] Título generado:', title);
+        return title.length > 0 ? title : 'Nuevo Chat';
+
+    } catch (err) {
+        console.error('❌ [TITLE] Error:', err);
+        return 'Nuevo Chat';
+    }
+}
+
+
+/**
  * Renderiza la lista de chats en el sidebar
- * Incluye fecha exacta de creación y opción de eliminar
+ */
+/**
+ * Actualiza SOLO el título de un chat en la lista sin re-renderizar todo
+ * Mucho más rápido que renderChatList()
+ */
+function updateChatListItemFast(chatId) {
+    const chatList = document.getElementById('chatList');
+    if (!chatList || !chats[chatId]) return;
+    
+    const chat = chats[chatId];
+    // Buscar el elemento del chat en el DOM
+    const chatItems = chatList.querySelectorAll('[data-chat-id]');
+    chatItems.forEach(item => {
+        if (item.dataset.chatId === chatId) {
+            const titleEl = item.querySelector('.chat-title');
+            if (titleEl) {
+                titleEl.textContent = chat.title;
+            }
+        }
+    });
+}
+
+/**
+ * Renderiza la lista de chats en el sidebar
  */
 function renderChatList() {
+    const chatList = document.getElementById('chatList');
     chatList.innerHTML = '<button id="btnDeleteAllChats" class="w-full text-center px-4 py-3 mb-3 rounded-lg text-white font-semibold transition">🗑️ Borrar todos los chats</button>';
     Object.entries(chats).sort((a, b) => new Date(b[1].createdAt) - new Date(a[1].createdAt)).forEach(([id, chat]) => {
         const div = document.createElement('div');
         div.className = 'chat-item flex justify-between items-center p-3 bg-gray-800 rounded-lg hover:bg-gray-700 transition';
+        div.setAttribute('data-chat-id', id);
         div.innerHTML = `
             <div class="flex-1">
-                <p class="font-bold truncate">${chat.title}</p>
+                <p class="font-bold truncate chat-title">${chat.title}</p>
                     <p class="text-sm opacity-70">${getExactTime(new Date(chat.createdAt))}</p>
             </div>
             <button class="deleteChat text-red-500 p-1" data-id="${id}"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
@@ -307,12 +460,43 @@ function renderChatList() {
             showConfirmModal();
         };
         div.onclick = () => {
+            // ✅ CAMBIAR DE CHAT INMEDIATAMENTE (sin esperar finalizeChatTitle)
+            const previousId = currentChatId;
             currentChatId = id;
             messages = chats[id].messages;
-            exchangeCount = 0; // ← RESET contador al cambiar de chat
+            exchangeCount = 0;
+            
+            // ✅ CARGAR ESTADO DE QUIZ FINALIZADO
+            quizFinalized = chats[id].quizFinalized || false;
+            console.log(`📋 [CHAT] Chat cargado. quizFinalized: ${quizFinalized}`);
+            
             localStorage.setItem('tutoria_currentChatId', id);
             renderMessages();
+            
+            // ✅ DESHABILITAR BOTÓN ENVÍO SI QUIZ FUE FINALIZADO
+            if (quizFinalized) {
+                send.setAttribute('disabled', 'disabled');
+                send.classList.add('disabled');
+                send.classList.add('quiz-finalized');
+                send.style.opacity = '0.4';
+                send.style.pointerEvents = 'none';
+                send.style.cursor = 'not-allowed';
+                console.log('🔒 [QUIZ] Chat finalizado - Botón bloqueado permanentemente');
+            } else {
+                send.removeAttribute('disabled');
+                send.classList.remove('disabled');
+                send.classList.remove('quiz-finalized');
+                send.style.opacity = '1';
+                send.style.pointerEvents = 'auto';
+                send.style.cursor = 'pointer';
+            }
+            
             sidebar.classList.add('hidden');
+            
+            // ✅ EJECUTAR finalizeChatTitle EN BACKGROUND (no bloquea)
+            if (previousId !== id) {
+                finalizeChatTitle(previousId).catch(err => console.error('Error finalizando título:', err));
+            }
         };
         chatList.appendChild(div);
     });
@@ -342,6 +526,46 @@ function saveChats() {
     localStorage.setItem('tutoria_currentChatId', currentChatId);
 }
 
+/**
+ * Renderiza la lista de chats en el sidebar
+ * Incluye fecha exacta de creación y opción de eliminar
+ */
+function renderChatListOld() {
+    chatList.innerHTML = '<button id="btnDeleteAllChats" class="w-full text-center px-4 py-3 mb-3 rounded-lg text-white font-semibold transition">🗑️ Borrar todos los chats</button>';
+    Object.entries(chats).sort((a, b) => new Date(b[1].createdAt) - new Date(a[1].createdAt)).forEach(([id, chat]) => {
+        const div = document.createElement('div');
+        div.className = 'chat-item flex justify-between items-center p-3 bg-gray-800 rounded-lg hover:bg-gray-700 transition';
+        div.innerHTML = `
+            <div class="flex-1">
+                <p class="font-bold truncate">${chat.title}</p>
+                    <p class="text-sm opacity-70">${getExactTime(new Date(chat.createdAt))}</p>
+            </div>
+            <button class="deleteChat text-red-500 p-1" data-id="${id}"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+        `;
+        div.querySelector('.deleteChat').onclick = (e) => {
+            e.stopPropagation();
+            pendingDeleteId = id;
+            document.querySelector('.modal-title').textContent = '⚠️ Confirmar eliminación';
+            document.querySelector('.modal-message').textContent = '¿Estás seguro de que deseas borrar esta conversación? Esta acción no se puede deshacer.';
+            showConfirmModal();
+        };
+        div.onclick = () => {
+            // Finalizar el título del chat anterior antes de cambiar
+            const previousId = currentChatId;
+            finalizeChatTitle(previousId).then(() => {
+                currentChatId = id;
+                messages = chats[id].messages;
+                exchangeCount = 0;
+                localStorage.setItem('tutoria_currentChatId', id);
+                renderMessages();
+                sidebar.classList.add('hidden');
+            });
+        };
+        chatList.appendChild(div);
+    });
+    lucide.createIcons();
+}
+
 // ======== RENDERIZADO DE MENSAJES ========
 /**
  * Renderiza todos los mensajes del chat actual desde cache
@@ -350,16 +574,54 @@ function renderMessages() {
     messagesDiv.innerHTML = '';
     if (messages.length === 0) {
         empty.classList.remove('hidden');
-    } else {
-        empty.classList.add('hidden');
-        messages.forEach(msg => {
-            addMessage(msg.content, msg.role, msg.image || null, msg.timestamp, false);
-        });
+        return;
     }
     
-    // Mostrar contador de mensajes en consola
-    console.log(`📊 [CHAT] Total de mensajes en el chat: ${messages.length}`);
+    empty.classList.add('hidden');
     
+    // ✅ Usar DocumentFragment para renderizar más rápido
+    const fragment = document.createDocumentFragment();
+    
+    messages.forEach(msg => {
+        // Crear elemento sin agregarlo al DOM todavía
+        const div = document.createElement('div');
+        div.className = `message flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-slide-up`;
+        
+        const bubble = document.createElement('div');
+        bubble.className = `max-w-[80%] px-5 py-4 rounded-3xl shadow-xl ${msg.role === 'user' ? 'msg-user' : 'msg-assistant'} border ${msg.role === 'user' ? '' : 'border-white/20'}`;
+        
+        if (msg.image) {
+            const img = document.createElement('img');
+            img.src = msg.image;
+            img.className = 'rounded-lg';
+            bubble.appendChild(img);
+        }
+        
+        const textDiv = document.createElement('div');
+        let parsed = marked.parse(msg.content);
+        parsed = parsed.replace(/<table>/g, '<table class="table-auto w-full border-collapse border border-gray-300">')
+                      .replace(/<th>/g, '<th class="border border-gray-300 px-4 py-2">')
+                      .replace(/<td>/g, '<td class="border border-gray-300 px-4 py-2">');
+        textDiv.innerHTML = parsed;
+        bubble.appendChild(textDiv);
+        
+        const timeP = document.createElement('p');
+        timeP.className = 'text-xs opacity-50 mt-1 text-right';
+        timeP.textContent = getExactTime(new Date(msg.timestamp));
+        bubble.appendChild(timeP);
+        
+        div.appendChild(bubble);
+        fragment.appendChild(div);
+    });
+    
+    // ✅ Agregar TODOS los elementos de una vez
+    messagesDiv.appendChild(fragment);
+    
+    // Renderizar MathJax y Lucide después
+    MathJax?.typesetPromise?.().catch(err => console.error('MathJax error:', err));
+    lucide.createIcons();
+    
+    console.log(`📊 [CHAT] Total de mensajes en el chat: ${messages.length}`);
     scrollToBottom();
 }
 
@@ -401,23 +663,49 @@ async function sendMessage(userChoice) {
     const imageToProcess = selectedImage; // Guardar antes de limpiar
     addMessage(textToSend, 'user', imageToProcess, messageTimestamp);
     
-    // Actualizar título del chat con el primer mensaje del usuario (solo en el primer mensaje)
-    if (messages.length === 2 && textToSend && chats[currentChatId].title === 'Nuevo Chat') {
-        // Extraer tema del mensaje: busca palabras clave o usa los primeros 50 caracteres
-        let chatTitle = textToSend.slice(0, 60).trim();
-        
-        // Limpiar el título removiendo puntuación al final si es necesario
-        chatTitle = chatTitle.replace(/[¿?!¡.,:;]+$/, '').trim();
-        
-        chats[currentChatId].title = chatTitle || 'Nuevo Chat';
-        saveChats();
-        renderChatList();
-    }
-    
     // Limpiar input solo si se envió desde la caja de texto
     if (typeof userChoice === 'undefined' || userChoice === null) input.value = '';
     input.style.height = '44px'; // Resetear altura al original
     clearImagePreview(); // Limpiar UI y selectedImage
+    
+    // ✅ INTERCEPTAR SOLICITUDES DE QUIZ
+    const inputLower = textToSend.toLowerCase();
+    if ((inputLower.includes('quiz') || inputLower.includes('examen') || inputLower.includes('prueba')) && !selectedImage) {
+        console.log('🎯 [QUIZ] ¡Usuario pidió quiz! Interceptando...');
+        removeTyping();
+        
+        // Contar mensajes de IA
+        const iaMessages = messages.filter(m => m.role === 'assistant');
+        const iaCount = iaMessages.length;
+        
+        // Detectar si pide quiz final o rápido
+        if (inputLower.includes('examen final') || inputLower.includes('examen completo')) {
+            console.log('🎯 [QUIZ] Iniciando EXAMEN FINAL');
+            
+            // Verificar si hay mínimo 6 mensajes de IA
+            if (iaCount < 6) {
+                console.warn(`⚠️ [QUIZ] No hay suficientes mensajes de IA. Tienes ${iaCount}, necesitas 6 mínimo`);
+                addMessage(`⚠️ Aún no hay suficiente contexto para el examen final. Necesito que hayamos intercambiado al menos 6 respuestas mías (tienes ${iaCount}/6). Por favor, continúa haciendo preguntas sobre el tema y luego intentamos de nuevo. 📚`, 'assistant', null, new Date().toISOString());
+            } else {
+                await startFinalQuiz();
+            }
+        } else {
+            console.log('🎯 [QUIZ] Iniciando QUIZ RÁPIDO');
+            
+            // Verificar si hay mínimo 3 mensajes de IA
+            if (iaCount < 3) {
+                console.warn(`⚠️ [QUIZ] No hay suficientes mensajes de IA. Tienes ${iaCount}, necesitas 3 mínimo`);
+                addMessage(`⚠️ Aún no hay suficiente contexto para un quiz. Necesito que te haya respondido al menos 3 veces (voy en ${iaCount}/3). Por favor, hazme más preguntas sobre el tema y luego intentamos de nuevo. 📝`, 'assistant', null, new Date().toISOString());
+            } else {
+                await startAutoQuiz();
+            }
+        }
+        
+        send.removeAttribute('disabled');
+        send.classList.remove('disabled');
+        updateSendState();
+        return;
+    }
     
     // Remover typing anterior si existe (por si acaso)
     removeTyping();
@@ -647,22 +935,51 @@ async function sendMessage(userChoice) {
         // Incrementar contador de intercambios cuando es respuesta de IA
         exchangeCount++;
         
+        // ✅ AUTO-GENERAR TÍTULO EN EL 3ER MENSAJE DE IA
+        if (exchangeCount === 3 && chats[currentChatId].title === 'Nuevo Chat') {
+            console.log('✨ [TÍTULO] Generando título automático en 3er intercambio...');
+            generateChatTitleWithAI(messages).then(newTitle => {
+                if (newTitle && newTitle !== 'Nuevo Chat') {
+                    chats[currentChatId].title = newTitle;
+                    saveChats();
+                    // Actualizar SOLO el item del chat actual en la lista (sin re-renderizar todo)
+                    updateChatListItemFast(currentChatId);
+                    console.log('✅ [TÍTULO] Actualizado:', newTitle);
+                }
+            }).catch(err => console.error('❌ [TÍTULO] Error:', err));
+        }
+        
         // Resetear flag de quiz options
         isShowingQuizOptions = false;
         
-        // SOLO ofrecer Quiz/Explicación después de 2-3 intercambios
-        // Detectar patrones que indican que el modelo pregunta si quiere continuar
-        const shouldOfferQuiz = reply.includes('¿Quieres hacer un Quiz') || 
-                               reply.includes('Quiz o una Explicación') ||
-                               reply.includes('¿Quieres practicar?') ||
-                               reply.includes('¿deseas practicar?');
+        // ✅ LÓGICA AUTOMÁTICA DE QUIZES (SIN INTERVENCIÓN DEL USUARIO)
+        // Quiz Rápido: Exactamente a los 4 mensajes de IA
+        if (exchangeCount === 4 && !isInQuizMode && !quizFinalized) {
+            console.log('🎯 [QUIZ RÁPIDO] ¡Momento para el quiz rápido! (msg 4)');
+            isShowingQuizOptions = true;
+            setTimeout(() => {
+                startAutoQuiz();
+            }, 1000);
+        }
+        // Quiz Final: Exactamente a los 8 mensajes de IA (4 después del quiz rápido)
+        else if (exchangeCount === 8 && !isInQuizMode && !quizFinalized) {
+            console.log('🎯 [QUIZ FINAL] ¡Momento para el quiz final! (msg 8)');
+            isShowingQuizOptions = true;
+            setTimeout(() => {
+                startFinalQuiz();
+            }, 1000);
+        }
+        else if (exchangeCount >= 2 && !isInQuizMode) {
+            console.log(`📝 [CHAT] Intercambio ${exchangeCount} completado. Esperando siguiente pregunta...`);
+        }
         
-        // Solo mostrar opciones después de al menos 2 intercambios del modelo (4 mensajes totales)
-        if (shouldOfferQuiz && exchangeCount >= 2 && !isInQuizMode) {
-            console.log('🎯 [QUIZ] Oferta de Quiz detectada después de', exchangeCount, 'intercambios');
-            setTimeout(() => showQuizOptions(), 800);
-        } else if (exchangeCount >= 2 && !isInQuizMode) {
-            console.log('📝 [CHAT] Intercambio', exchangeCount, 'completado. Esperando siguiente pregunta...');
+        // ✅ NUEVA LÓGICA: Después de 7 mensajes de IA, ofrecer quiz final o explicación
+        if (exchangeCount === 7 && !isInQuizMode && !isShowingQuizOptions && !quizFinalized) {
+            console.log('🎯 [QUIZ FINAL] ¡Momento para ofrecer quiz definitivo o explicación!');
+            isShowingQuizOptions = true;
+            setTimeout(() => {
+                showFinalQuizOrExplanationOptions();
+            }, 1000);
         }
         
         // Si estamos en modo explicación y dice "Listo"
@@ -1358,30 +1675,48 @@ try {
  */
 async function generateAutoQuiz(topic) {
     try {
-        console.log('🎯 [QUIZ] Generando quiz automático sobre:', topic);
+        console.log('🎯 [QUIZ] Generando quiz automático');
         
-        // Obtener contexto de la CONVERSACIÓN REAL
-        const recentMessages = messages.slice(-6); // Últimos 3 intercambios
-        const conversationContext = recentMessages
-            .map(m => `${m.role === 'user' ? 'Estudiante' : 'TutorIA'}: ${m.content.substring(0, 200)}`)
+        // ✅ USAR LOS ÚLTIMOS 3 MENSAJES DE IA COMO CONTEXTO
+        // Filtrar SOLO mensajes de la IA
+        const iaMessages = messages.filter(m => m.role === 'assistant');
+        const lastThreeMessages = iaMessages.slice(-3);
+        
+        // Construir contexto SOLO con los últimos mensajes de IA
+        const directContext = lastThreeMessages
+            .map((m, idx) => `[Mensaje IA ${idx + 1}]: ${m.content.substring(0, 300)}`)
             .join('\n\n');
         
-        const quizPrompt = `Eres un profesor experto. Basándote en ESTA CONVERSACIÓN REAL sobre "${topic}", 
-genera EXACTAMENTE 2 preguntas de opción múltiple que verifiquen la comprensión específica de lo discutido.
+        if (!directContext || directContext.length < 50) {
+            console.warn('⚠️ [QUIZ] Contexto insuficiente');
+            return { error: true, message: 'No hay suficiente contexto para generar el quiz. Continúa conversando un poco más.' };
+        }
+        
+        const quizPrompt = `Eres un profesor experto pedagógico. 
 
-CONVERSACIÓN:
-${conversationContext}
+El estudiante ha estado aprendiendo sobre un tema. Basándote EXACTAMENTE en lo que se enseñó en estos últimos 3 mensajes, 
+genera EXACTAMENTE 2 preguntas de opción múltiple que verifiquen la comprensión de lo ESPECÍFICAMENTE DISCUTIDO:
 
-INSTRUCCIONES:
-- Preguntas ESPECÍFICAS basadas en conceptos mencionados en la conversación (no genéricas)
-- Opciones incorrectas deben ser ENGAÑOSAS pero relacionadas (errores comunes, conceptos similares)
-- 4 opciones por pregunta (a, b, c, d)
+CONTEXTO DE LA LECCIÓN (últimos 3 mensajes del tutor):
+${directContext}
 
-Formato EXACTO:
+⚠️ REGLAS CRÍTICAS - DEBES SEGUIR EXACTAMENTE:
+1. ✅ Generar SOLO 2 preguntas (QUIZ 1 y QUIZ 2)
+2. ✅ VERIFICAR que AMBAS preguntas sean sobre contenido mencionado EXACTAMENTE en los mensajes arriba
+3. ✅ Las preguntas deben reflejar LO QUE SE ENSEÑÓ, no conceptos genéricos
+4. ✅ NO hacer preguntas sobre conceptos que NO se mencionaron
+
+ESPECIFICACIONES:
+- Preguntas ESPECÍFICAS basadas en conceptos mencionados en los mensajes
+- Opciones incorrectas deben ser ENGAÑOSAS pero relacionadas (errores comunes)
+- EXACTAMENTE 4 opciones por pregunta (a, b, c, d)
+- Las opciones deben mostrarse como: a) [texto]
+
+Formato EXACTO (SOLO ESTO):
 QUIZ 1:
-Pregunta: [pregunta específica sobre la conversación]
+Pregunta: [pregunta específica sobre lo enseñado]
 a) [opción engañosa]
-b) [RESPUESTA CORRECTA - directa de la conversación]
+b) [RESPUESTA CORRECTA - directa de la lección]
 c) [opción engañosa]
 d) [opción engañosa]
 Respuesta: b
@@ -1394,7 +1729,9 @@ c) [opción engañosa]
 d) [opción engañosa]
 Respuesta: a
 
-Responde SOLO en este formato exacto.`;
+⛔ Si NO puedes hacer 2 preguntas relacionadas con lo enseñado, responde SOLO: "ERROR_TOPIC_MISMATCH"
+
+Responde SOLO en el formato exacto especificado.`;
 
         const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
@@ -1426,7 +1763,14 @@ Responde SOLO en este formato exacto.`;
 
         const data = await res.json();
         const quizText = data.choices[0]?.message?.content || '';
-        console.log('📝 [QUIZ] Respuesta IA:', quizText.substring(0, 200));
+        console.log('📝 [QUIZ] Respuesta IA COMPLETA:', quizText);
+        console.log('📝 [QUIZ] Respuesta IA (primeros 200):', quizText.substring(0, 200));
+        
+        // ✅ VALIDACIÓN: Verificar si hay relación de tema
+        if (quizText.includes('ERROR_TOPIC_MISMATCH')) {
+            console.warn('⚠️ [QUIZ] Las preguntas no están relacionadas con el tema:', topic);
+            return { error: true, message: `Las preguntas no están directamente relacionadas con "${topic}". Por favor, proporciona un tema más específico o continúa la conversación primero.` };
+        }
         
         // Parsear las 2 preguntas del formato EXACTO
         const quizzes = [];
@@ -1437,16 +1781,22 @@ Responde SOLO en este formato exacto.`;
             return [];
         }
 
-        quizMatches.forEach(quizBlock => {
-            const preguntaMatch = quizBlock.match(/Pregunta:\s*(.+)/);
+        quizMatches.forEach((quizBlock, quizIdx) => {
+            const preguntaMatch = quizBlock.match(/Pregunta:\s*([^\n]+)/);
             const respuestaMatch = quizBlock.match(/Respuesta:\s*([a-d])/);
-            const optionsMatches = quizBlock.match(/([a-d]\))\s*(.+)/g);
+            // Mejorado: captura opciones correctamente
+            const optionsMatches = quizBlock.match(/([a-d])\)\s*([^\n]+)/g);
+            
+            console.log(`📝 [QUIZ] Quiz ${quizIdx + 1} - Opciones encontradas:`, optionsMatches ? optionsMatches.length : 0);
             
             if (preguntaMatch && respuestaMatch && optionsMatches && optionsMatches.length >= 4) {
                 const options = {};
-                optionsMatches.forEach(opt => {
-                    const [letter, text] = opt.split(')').map(s => s.trim());
+                optionsMatches.forEach((opt, optIdx) => {
+                    const parts = opt.split(')');
+                    const letter = parts[0].trim();
+                    const text = parts.slice(1).join(')').trim();
                     options[letter] = text;
+                    console.log(`   ${letter}) ${text}`);
                 });
                 
                 quizzes.push({
@@ -1454,14 +1804,181 @@ Responde SOLO en este formato exacto.`;
                     options: options,
                     correctAnswer: respuestaMatch[1]
                 });
+                console.log(`✅ Quiz ${quizIdx + 1} parseado correctamente`);
+            } else {
+                console.warn(`⚠️ [QUIZ] Quiz ${quizIdx + 1} no cumple requisitos:`, {
+                    preguntaMatch: !!preguntaMatch,
+                    respuestaMatch: !!respuestaMatch,
+                    optionsMatches: optionsMatches ? optionsMatches.length : 0
+                });
             }
         });
 
         console.log('✅ [QUIZ] Quiz generados:', quizzes.length, 'sobre:', topic);
+        console.log('📋 [QUIZ] Quizes finales:', JSON.stringify(quizzes, null, 2));
         return quizzes.slice(0, 2); // Máximo 2 quices
         
     } catch(err) {
         console.error('❌ [QUIZ] Error:', err);
+        return [];
+    }
+}
+
+/**
+ * Genera un Quiz Final completo (5 preguntas)
+ * Se llama cuando el usuario quiere un examen más profundo
+ * @param {string} topic - Tema del quiz
+ * @returns {Promise<Array>} Array de 5 preguntas
+ */
+async function generateFinalQuiz(topic) {
+    try {
+        console.log('🎯 [QUIZ FINAL] Generando quiz final completo');
+        
+        // ✅ USAR LOS ÚLTIMOS 6 MENSAJES DE IA COMO CONTEXTO
+        // Filtrar SOLO mensajes de la IA
+        const iaMessages = messages.filter(m => m.role === 'assistant');
+        const lastSixMessages = iaMessages.slice(-6);
+        
+        // Construir contexto SOLO con los últimos mensajes de IA
+        const directContext = lastSixMessages
+            .map((m, idx) => `[Mensaje IA ${idx + 1}]: ${m.content.substring(0, 400)}`)
+            .join('\n\n');
+        
+        if (!directContext || directContext.length < 100) {
+            console.warn('⚠️ [QUIZ FINAL] Contexto insuficiente');
+            return { error: true, message: 'No hay suficiente contexto para generar el examen. Continúa conversando un poco más.' };
+        }
+        
+        const quizPrompt = `Eres un profesor experto pedagógico. 
+
+El estudiante ha estado aprendiendo sobre un tema. Basándote EXACTAMENTE en lo que se enseñó en estos últimos 6 mensajes,
+genera EXACTAMENTE 5 preguntas de opción múltiple que verifiquen la comprensión PROFUNDA de lo ESPECÍFICAMENTE DISCUTIDO:
+
+CONTEXTO DE LA LECCIÓN (últimos 6 mensajes del tutor):
+${directContext}
+
+⚠️ REGLAS CRÍTICAS - DEBES SEGUIR EXACTAMENTE:
+1. ✅ Generar SOLO 5 preguntas (QUIZ 1 a QUIZ 5) - NO MÁS
+2. ✅ VERIFICAR que TODAS las preguntas sean sobre contenido mencionado EXACTAMENTE en los mensajes arriba
+3. ✅ Las preguntas deben reflejar LO QUE SE ENSEÑÓ, no conceptos genéricos
+4. ✅ NO hacer preguntas sobre conceptos que NO se mencionaron
+5. ✅ Progresión: Pregunta 1-2 básicas, Pregunta 3-4 intermedias, Pregunta 5 avanzada
+
+ESPECIFICACIONES:
+- Preguntas ESPECÍFICAS basadas en conceptos mencionados en los mensajes
+- Opciones incorrectas deben ser ENGAÑOSAS pero relacionadas (errores comunes)
+- EXACTAMENTE 4 opciones por pregunta (a, b, c, d)
+- Las opciones deben mostrarse como: a) [texto]
+
+Formato EXACTO (SOLO ESTO):
+QUIZ 1:
+Pregunta: [pregunta específica sobre lo enseñado]
+a) [opción engañosa]
+b) [RESPUESTA CORRECTA]
+c) [opción engañosa]
+d) [opción engañosa]
+Respuesta: b
+
+QUIZ 2:
+Pregunta: [pregunta específica]
+a) [opción engañosa]
+b) [opción engañosa]
+c) [RESPUESTA CORRECTA]
+d) [opción engañosa]
+Respuesta: c
+
+[Continuar QUIZ 3, QUIZ 4, QUIZ 5 con mismo formato]
+
+⛔ Si NO puedes hacer 5 preguntas relacionadas con lo enseñado, responde SOLO: "ERROR_TOPIC_MISMATCH"
+
+Responde SOLO en el formato exacto especificado.`;
+
+        const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getCurrentApiKey()}`
+            },
+            body: JSON.stringify({
+                model: MODEL,
+                messages: [
+                    { 
+                        role: "system", 
+                        content: "Eres un profesor pedagógico experto que crea 5 preguntas progresivas de examen basadas en conversaciones reales. Evalúas comprensión profunda y aplicación de conceptos."
+                    },
+                    { 
+                        role: "user", 
+                        content: quizPrompt 
+                    }
+                ],
+                temperature: 0.6,
+                max_tokens: 1200
+            })
+        });
+
+        if (!res.ok) {
+            console.error('❌ [QUIZ FINAL] Error generando quiz:', res.status);
+            return [];
+        }
+
+        const data = await res.json();
+        const quizText = data.choices[0]?.message?.content || '';
+        console.log('📝 [QUIZ FINAL] Respuesta IA COMPLETA:', quizText);
+        console.log('📝 [QUIZ FINAL] Respuesta IA (primeros 200):', quizText.substring(0, 200));
+        
+        // ✅ VALIDACIÓN: Verificar si hay relación de tema
+        if (quizText.includes('ERROR_TOPIC_MISMATCH')) {
+            console.warn('⚠️ [QUIZ FINAL] Las preguntas no están relacionadas con el tema:', topic);
+            return { error: true, message: `Las preguntas no están directamente relacionadas con "${topic}". Por favor, continúa la conversación primero.` };
+        }
+        
+        // Parsear las 5 preguntas
+        const quizzes = [];
+        const quizMatches = quizText.match(/QUIZ \d+:([\s\S]*?)(?=QUIZ \d+:|$)/g);
+        
+        if (!quizMatches) {
+            console.warn('⚠️ [QUIZ FINAL] No se pudieron parsear los quices');
+            return [];
+        }
+
+        quizMatches.forEach((quizBlock, quizIdx) => {
+            const preguntaMatch = quizBlock.match(/Pregunta:\s*([^\n]+)/);
+            const respuestaMatch = quizBlock.match(/Respuesta:\s*([a-d])/);
+            const optionsMatches = quizBlock.match(/([a-d])\)\s*([^\n]+)/g);
+            
+            console.log(`📝 [QUIZ FINAL] Quiz ${quizIdx + 1} - Opciones encontradas:`, optionsMatches ? optionsMatches.length : 0);
+            
+            if (preguntaMatch && respuestaMatch && optionsMatches && optionsMatches.length >= 4) {
+                const options = {};
+                optionsMatches.forEach((opt, optIdx) => {
+                    const parts = opt.split(')');
+                    const letter = parts[0].trim();
+                    const text = parts.slice(1).join(')').trim();
+                    options[letter] = text;
+                    console.log(`   ${letter}) ${text}`);
+                });
+                
+                quizzes.push({
+                    question: preguntaMatch[1].trim(),
+                    options: options,
+                    correctAnswer: respuestaMatch[1]
+                });
+                console.log(`✅ Quiz Final ${quizIdx + 1} parseado correctamente`);
+            } else {
+                console.warn(`⚠️ [QUIZ FINAL] Quiz ${quizIdx + 1} no cumple requisitos:`, {
+                    preguntaMatch: !!preguntaMatch,
+                    respuestaMatch: !!respuestaMatch,
+                    optionsMatches: optionsMatches ? optionsMatches.length : 0
+                });
+            }
+        });
+
+        console.log('✅ [QUIZ FINAL] Quiz generados:', quizzes.length, 'sobre:', topic);
+        console.log('📋 [QUIZ FINAL] Quizes finales:', JSON.stringify(quizzes, null, 2));
+        return quizzes.slice(0, 5); // Máximo 5 quices
+        
+    } catch(err) {
+        console.error('❌ [QUIZ FINAL] Error:', err);
         return [];
     }
 }
@@ -1476,9 +1993,18 @@ async function startAutoQuiz() {
     
     const topic = chats[currentChatId].title || 'el tema';
     showTyping();
-    const quizzes = await generateAutoQuiz(topic);
+    const result = await generateAutoQuiz(topic);
     removeTyping();
     
+    // ✅ Manejar error de mismatch de tema
+    if (result.error) {
+        addMessage(result.message, 'assistant', null, new Date().toISOString());
+        isInQuizMode = false;
+        updateSendState();
+        return;
+    }
+    
+    const quizzes = result;
     if (quizzes.length === 0) {
         addMessage('No pude generar las preguntas. Intenta de nuevo. 📝', 'assistant', null, new Date().toISOString());
         isInQuizMode = false;
@@ -1499,24 +2025,25 @@ function renderAutoQuiz(quizzes) {
     container.id = 'auto-quiz-container';
     
     const bubble = document.createElement('div');
-    bubble.className = 'px-5 py-4 rounded-3xl msg-assistant border border-white/20 max-w-[90%] w-full';
+    bubble.className = 'px-5 py-4 rounded-3xl msg-assistant border border-white/20 max-w-[95%] w-full';
     
     let html = '<div class="space-y-6">';
+    html += '<h2 class="font-bold text-xl mb-4">📝 Quiz Rápido - 2 Preguntas (5 puntos c/u)</h2>';
     
     quizzes.forEach((quiz, idx) => {
         const quizNum = idx + 1;
         html += `
         <div class="border-t pt-4 ${idx === 0 ? 'border-t-0 pt-0' : ''}">
             <h3 class="font-bold text-lg mb-3">Pregunta ${quizNum} de 2</h3>
-            <p class="mb-4 font-semibold">${quiz.question}</p>
+            <p class="mb-4 font-semibold text-white">${quiz.question}</p>
             <div class="space-y-3 mb-4">
         `;
         
         Object.entries(quiz.options).forEach(([key, value]) => {
             html += `
-                <label class="flex items-center gap-3 cursor-pointer p-2 rounded hover:bg-white/10 transition">
-                    <input type="radio" name="quiz_${idx}" value="${key}" class="quiz-radio w-4 h-4">
-                    <span>${key.toUpperCase()}) ${value}</span>
+                <label class="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-white/20 transition border border-transparent hover:border-indigo-400">
+                    <input type="radio" name="quiz_${idx}" value="${key}" class="w-5 h-5 cursor-pointer" style="accent-color: #818cf8;">
+                    <span class="text-base font-medium">${key.toUpperCase()}) ${value}</span>
                 </label>
             `;
         });
@@ -1529,7 +2056,7 @@ function renderAutoQuiz(quizzes) {
     
     html += `
         <div class="flex gap-3 pt-4 border-t">
-            <button id="submitAutoQuiz" class="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition">
+            <button id="submitAutoQuiz" class="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition transform hover:scale-105">
                 ✅ Enviar respuestas
             </button>
         </div>
@@ -1544,6 +2071,171 @@ function renderAutoQuiz(quizzes) {
     });
     
     scrollToBottom();
+}
+
+/**
+ * Renderiza el Quiz Final (5 preguntas) con el mismo formato que el quiz rápido
+ */
+function renderFinalQuiz(quizzes) {
+    const container = document.createElement('div');
+    container.className = 'message flex justify-start animate-slide-up';
+    container.id = 'final-quiz-container';
+    
+    const bubble = document.createElement('div');
+    bubble.className = 'px-5 py-4 rounded-3xl msg-assistant border border-white/20 max-w-[95%] w-full';
+    
+    let html = '<div class="space-y-6">';
+    html += '<h2 class="font-bold text-xl mb-4">📚 Examen Final - 5 Preguntas (2 puntos c/u = 10 total)</h2>';
+    
+    quizzes.forEach((quiz, idx) => {
+        const quizNum = idx + 1;
+        html += `
+        <div class="border-t pt-4 ${idx === 0 ? 'border-t-0 pt-0' : ''}">
+            <h3 class="font-bold text-lg mb-3">Pregunta ${quizNum} de 5</h3>
+            <p class="mb-4 font-semibold text-white">${quiz.question}</p>
+            <div class="space-y-3 mb-4">
+        `;
+        
+        Object.entries(quiz.options).forEach(([key, value]) => {
+            html += `
+                <label class="flex items-center gap-3 cursor-pointer p-3 rounded-lg hover:bg-white/20 transition border border-transparent hover:border-blue-400">
+                    <input type="radio" name="final_quiz_${idx}" value="${key}" class="w-5 h-5 cursor-pointer" style="accent-color: #818cf8;">
+                    <span class="text-base font-medium">${key.toUpperCase()}) ${value}</span>
+                </label>
+            `;
+        });
+        
+        html += `
+            </div>
+        </div>
+        `;
+    });
+    
+    html += `
+        <div class="flex gap-3 pt-4 border-t">
+            <button id="submitFinalQuiz" class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition transform hover:scale-105">
+                ✅ Enviar examen
+            </button>
+        </div>
+    </div>`;
+    
+    bubble.innerHTML = html;
+    container.appendChild(bubble);
+    messagesDiv.appendChild(container);
+    
+    document.getElementById('submitFinalQuiz').addEventListener('click', () => {
+        submitFinalQuiz(quizzes);
+    });
+    
+    scrollToBottom();
+}
+
+/**
+ * Envía y califica el Quiz Final
+ * 5 preguntas × 2 puntos = 10 puntos totales
+ */
+async function submitFinalQuiz(quizzes) {
+    const container = document.getElementById('final-quiz-container');
+    const answers = [];
+    const responses = [];
+    
+    // Recolectar respuestas
+    quizzes.forEach((quiz, idx) => {
+        const selected = document.querySelector(`input[name="final_quiz_${idx}"]:checked`);
+        if (selected) {
+            const isCorrect = selected.value === quiz.correctAnswer;
+            answers.push(isCorrect);
+            responses.push({
+                question: quiz.question,
+                userAnswer: selected.value,
+                correct: quiz.correctAnswer,
+                isCorrect: isCorrect,
+                correctOption: quiz.options[quiz.correctAnswer],
+                allOptions: quiz.options
+            });
+        }
+    });
+    
+    // Desactivar inputs
+    container.querySelectorAll('input').forEach(i => i.disabled = true);
+    
+    // Mostrar feedback con puntuación (5 preguntas × 2 puntos = 10)
+    const correctCount = answers.filter(a => a).length;
+    const totalPoints = correctCount * 2; // 2 puntos por pregunta correcta
+    let feedback = `¡Has completado el examen final! 🎉\n\n**CALIFICACIÓN FINAL: ${totalPoints}/10**\n`;
+    
+    // Calificar con criterios educativos
+    let grade = '';
+    if (totalPoints === 10) {
+        grade = '🌟 ¡EXCELENTE! Dominaste completamente el tema.';
+    } else if (totalPoints >= 8) {
+        grade = '✅ MUY BIEN. Tienes excelente comprensión del tema.';
+    } else if (totalPoints >= 6) {
+        grade = '👍 BIEN. Entiendes los conceptos principales, pero hay áreas por reforzar.';
+    } else if (totalPoints >= 4) {
+        grade = '⚠️ REGULAR. Necesitas repasar varios conceptos clave.';
+    } else {
+        grade = '📚 INSUFICIENTE. Te recomiendo repasar desde el inicio con nuevas explicaciones.';
+    }
+    
+    feedback += `${grade}\n\n`;
+    feedback += `Respondiste correctamente **${correctCount} de ${quizzes.length}** preguntas.\n\n`;
+    feedback += `---\n\n`;
+    
+    // Procesar respuestas (con explicaciones detalladas para errores)
+    for (let idx = 0; idx < responses.length; idx++) {
+        const resp = responses[idx];
+        feedback += `**Pregunta ${idx + 1} (2 puntos):** ${resp.question}\n\n`;
+        feedback += `Tu respuesta: **${resp.userAnswer.toUpperCase()})** ${resp.allOptions[resp.userAnswer]} `;
+        
+        if (resp.isCorrect) {
+            feedback += `✅ **¡CORRECTO!**\n\n`;
+        } else {
+            feedback += `❌ **INCORRECTO**\n\n`;
+            feedback += `**Respuesta correcta:** **${resp.correct.toUpperCase()})** ${resp.correctOption}\n\n`;
+            
+            // Generar explicación detallada de por qué falló
+            console.log('📝 [EXAMEN] Generando explicación para pregunta', idx + 1);
+            showTyping();
+            const explanation = await generateExplanationForWrongAnswer(
+                resp.question,
+                resp.userAnswer,
+                resp.correct,
+                resp.allOptions
+            );
+            removeTyping();
+            
+            feedback += `**📖 ¿Por qué fue incorrecto?**\n\n${explanation}\n\n`;
+        }
+        
+        feedback += `---\n\n`;
+    }
+    
+    addMessage(feedback, 'assistant', null, new Date().toISOString());
+    isInQuizMode = false;
+    
+    // ✅ MARCAR QUIZ COMO FINALIZADO Y GUARDAR
+    quizFinalized = true;
+    chats[currentChatId].quizFinalized = true;
+    saveChats();
+    
+    console.log('🔒 [QUIZ FINAL] Quiz finalizado. Chat cerrado.');
+    
+    // ✅ BLOQUEAR BOTÓN DE ENVÍO PERMANENTEMENTE
+    send.setAttribute('disabled', 'disabled');
+    send.classList.add('disabled');
+    send.classList.add('quiz-finalized');  // Clase especial para bloqueo permanente
+    send.style.opacity = '0.4';
+    send.style.pointerEvents = 'none';
+    send.style.cursor = 'not-allowed';
+    
+    // ✅ MENSAJE FINAL
+    setTimeout(() => {
+        const finalMessage = `¡Excelente trabajo! 🎉 Has completado el examen final de este tema. 
+
+¿Quieres aprender algo nuevo? Puedes crear un nuevo chat para explorar otros temas.`;
+        addMessage(finalMessage, 'assistant', null, new Date().toISOString());
+    }, 1500);
 }
 
 /**
@@ -1639,18 +2331,24 @@ async function submitAutoQuiz(quizzes) {
     // Desactivar inputs
     container.querySelectorAll('input').forEach(i => i.disabled = true);
     
-    // Mostrar feedback
+    // Mostrar feedback con puntuación (2 preguntas × 5 puntos = 10)
     const correctCount = answers.filter(a => a).length;
-    let feedback = `¡Excelente esfuerzo! 🎉 Acertaste ${correctCount} de ${quizzes.length} preguntas.\n\n`;
+    const totalPoints = correctCount * 5; // 5 puntos por pregunta correcta
+    let feedback = `¡Excelente esfuerzo! 🎉\n\n**Puntuación: ${totalPoints}/10**\n`;
+    feedback += `Acertaste **${correctCount} de ${quizzes.length}** preguntas.\n\n`;
+    feedback += `---\n\n`;
     
-    // Procesar respuestas (ahora con explicaciones)
+    // Procesar respuestas (con explicaciones detalladas)
     for (let idx = 0; idx < responses.length; idx++) {
         const resp = responses[idx];
-        feedback += `**Pregunta ${idx + 1}:** ${resp.question}\n`;
-        feedback += `Tu respuesta: **${resp.userAnswer.toUpperCase()})** ${resp.isCorrect ? '✅ ¡CORRECTO!' : '❌'}\n`;
+        feedback += `**Pregunta ${idx + 1} (5 puntos):** ${resp.question}\n\n`;
+        feedback += `Tu respuesta: **${resp.userAnswer.toUpperCase()})** ${resp.allOptions[resp.userAnswer]} `;
         
-        if (!resp.isCorrect) {
-            feedback += `Respuesta correcta: **${resp.correct.toUpperCase()})** ${resp.correctOption}\n\n`;
+        if (resp.isCorrect) {
+            feedback += `✅ **¡CORRECTO!**\n\n`;
+        } else {
+            feedback += `❌ **INCORRECTO**\n\n`;
+            feedback += `**Respuesta correcta:** **${resp.correct.toUpperCase()})** ${resp.correctOption}\n\n`;
             
             // Generar explicación de por qué falló
             console.log('📝 [QUIZ] Generando explicación para pregunta', idx + 1);
@@ -1663,28 +2361,209 @@ async function submitAutoQuiz(quizzes) {
             );
             removeTyping();
             
-            feedback += `📖 **Explicación:** ${explanation}\n`;
+            feedback += `**📖 ¿Por qué fue incorrecto?**\n\n${explanation}\n\n`;
         }
         
-        feedback += '\n';
+        feedback += `---\n\n`;
     }
     
     addMessage(feedback, 'assistant', null, new Date().toISOString());
     isInQuizMode = false;
     updateSendState();
     
-    // Preguntar si quiere más práctica
-    setTimeout(() => {
-        let followUp;
-        if (correctCount === quizzes.length) {
-            followUp = "¡Perfecto! 🌟 Respondiste correctamente todas las preguntas. ¿Quieres aprender un concepto nuevo o reforzar algo más?";
-        } else if (correctCount === 0) {
-            followUp = "Parece que el tema aún no está claro. No te preocupes, es normal. 💪 ¿Quieres que explique de nuevo de forma diferente?";
-        } else {
-            followUp = `Muy bien, acertaste ${correctCount} de ${quizzes.length}. Hay algunos temas por reforzar. ¿Quieres repasar esa parte o pasar a otro tema?`;
+    // ✅ CONTINUAR ESCRIBIENDO AUTOMÁTICAMENTE DESPUÉS DEL QUIZ
+    setTimeout(async () => {
+        console.log('🤖 [QUIZ] Continuando explicación después del quiz...');
+        showTyping();
+        
+        try {
+            // Crear prompt para que IA continúe explicando el tema
+            const continuationPrompt = `El estudiante acaba de completar un quiz rápido sobre el tema que hemos estado discutiendo. 
+Felicítalo brevemente y luego continúa explicando más aspectos del tema, profundizando en conceptos relacionados o ejemplos adicionales.
+Mantén un tono educativo y amigable. No hagas un nuevo quiz, solo sigue enseñando.`;
+            
+            const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${getCurrentApiKey()}`
+                },
+                body: JSON.stringify({
+                    model: MODEL,
+                    messages: [
+                        ...messages,
+                        { role: 'user', content: continuationPrompt }
+                    ],
+                    temperature: 0.7,
+                    max_tokens: 600
+                })
+            });
+            
+            if (!res.ok) {
+                throw new Error(`API Error: ${res.status}`);
+            }
+            
+            const data = await res.json();
+            const continuation = data.choices[0]?.message?.content || '';
+            
+            if (continuation) {
+                removeTyping();
+                addMessage(continuation, 'assistant', null, new Date().toISOString());
+                // Incrementar contador de intercambios
+                exchangeCount++;
+                console.log(`📊 [INTERCAMBIOS] Total después de continuación: ${exchangeCount}`);
+                renderMessages();
+            } else {
+                removeTyping();
+                console.warn('⚠️ [QUIZ] No se pudo obtener continuación');
+            }
+        } catch (err) {
+            removeTyping();
+            console.error('❌ [QUIZ] Error en continuación:', err);
         }
-        addMessage(followUp, 'assistant', null, new Date().toISOString());
     }, 1500);
+}
+
+/**
+ * Muestra opciones de Quiz Final o Explicación después de 7 mensajes de IA
+ */
+function showFinalQuizOrExplanationOptions() {
+    const div = document.createElement('div');
+    div.className = 'message flex justify-start animate-slide-up';
+    div.id = 'final-quiz-options';
+    
+    const messageText = "Creo que ya tenemos suficiente contexto. ¿Quieres demostrar lo que aprendiste con un examen final (5 preguntas) o prefieres explicar el tema con tus propias palabras?";
+    
+    const html = `
+        <div class="px-5 py-4 rounded-3xl msg-assistant border border-white/20 max-w-[95%]">
+            <p class="mb-4">${messageText}</p>
+            <div class="flex gap-3 flex-wrap">
+                <button class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition final-opt-btn" data-action="final-quiz">
+                    📚 Examen Final (5 preguntas)
+                </button>
+                <button class="px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition final-opt-btn" data-action="explain">
+                    💬 Explicar con mis propias palabras
+                </button>
+            </div>
+        </div>
+    `;
+    
+    div.innerHTML = html;
+    messagesDiv.appendChild(div);
+    
+    const buttons = div.querySelectorAll('.final-opt-btn');
+    buttons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            buttons.forEach(b => b.disabled = true);
+            const action = e.target.dataset.action;
+            
+            const optionsDiv = document.getElementById('final-quiz-options');
+            if (optionsDiv) optionsDiv.remove();
+            
+            if (action === 'final-quiz') {
+                console.log('🎯 [FINAL QUIZ] Usuario eligió examen final');
+                startFinalQuiz();
+            } else if (action === 'explain') {
+                console.log('📝 [EXPLAIN] Usuario eligió explicación');
+                startExplanationMode();
+            }
+        }, { once: true });
+    });
+    
+    scrollToBottom();
+}
+
+/**
+ * Muestra opciones después de completar un quiz
+ * @param {string} quizType - 'auto' para quiz rápido, 'final' para quiz definitivo
+ */
+function showPostQuizOptions(quizType) {
+    const div = document.createElement('div');
+    div.className = 'message flex justify-start animate-slide-up';
+    div.id = 'post-quiz-options';
+    
+    let messageText = '';
+    let showFinalQuiz = false;
+    
+    if (quizType === 'auto') {
+        // Después del quiz rápido: solo opción de continuar conversando
+        messageText = "¡Bien hecho! 💪 Continuemos explorando este tema juntos.";
+        showFinalQuiz = false;
+    } else if (quizType === 'final') {
+        // Después del quiz definitivo: solo opción de continuar
+        messageText = "¡Felicidades por completar el examen final! 🎉 ¿Quieres reforzar otro aspecto del tema o aprender algo completamente nuevo?";
+        showFinalQuiz = false;
+    }
+    
+    let buttonsHTML = `
+        <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition post-quiz-btn" data-action="continue">
+            💬 Continuar charlando del tema
+        </button>
+    `;
+    
+    div.innerHTML = `
+        <div class="px-5 py-4 rounded-3xl msg-assistant border border-white/20 max-w-[95%]">
+            <p class="mb-4">${messageText}</p>
+            <div class="flex gap-3 flex-wrap">
+                ${buttonsHTML}
+            </div>
+        </div>
+    `;
+    
+    messagesDiv.appendChild(div);
+    
+    const buttons = div.querySelectorAll('.post-quiz-btn');
+    buttons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            buttons.forEach(b => b.disabled = true);
+            const action = e.target.dataset.action;
+            
+            if (action === 'continue') {
+                // Usuario quiere continuar charlando
+                const optionsDiv = document.getElementById('post-quiz-options');
+                if (optionsDiv) optionsDiv.remove();
+                isInQuizMode = false;
+                updateSendState();
+                const input = document.getElementById('input');
+                if (input) input.focus();
+            }
+        }, { once: true });
+    });
+    
+    scrollToBottom();
+}
+
+/**
+ * Inicia el modo de quiz final (5 preguntas detalladas)
+ */
+async function startFinalQuiz() {
+    isInQuizMode = true;
+    send.setAttribute('disabled', '');
+    send.classList.add('disabled');
+    
+    const topic = chats[currentChatId].title || 'el tema';
+    showTyping();
+    const result = await generateFinalQuiz(topic);
+    removeTyping();
+    
+    // ✅ Manejar error de mismatch de tema
+    if (result.error) {
+        addMessage(result.message, 'assistant', null, new Date().toISOString());
+        isInQuizMode = false;
+        updateSendState();
+        return;
+    }
+    
+    const quizzes = result;
+    if (quizzes.length === 0) {
+        addMessage('No pude generar las preguntas. Intenta de nuevo. 📝', 'assistant', null, new Date().toISOString());
+        isInQuizMode = false;
+        updateSendState();
+        return;
+    }
+    
+    addMessage('¡Aquí viene tu examen final con 5 preguntas! Demuestra todo lo que aprendiste. 📚', 'assistant', null, new Date().toISOString());
+    setTimeout(() => renderFinalQuiz(quizzes), 500);
 }
 
 /**
@@ -1716,7 +2595,8 @@ function showQuizOptions() {
         <div class="px-5 py-4 rounded-3xl msg-assistant border border-white/20 max-w-[80%]">
             <p class="mb-4">¡Excelente! Ahora vamos a reforzar lo que aprendiste. ¿Qué prefieres hacer?</p>
             <div class="flex gap-3 flex-wrap">
-                <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition quiz-option-btn" data-action="quiz">📝 Hacer Quiz</button>
+                <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition quiz-option-btn" data-action="quiz">📝 Quiz Rápido (2 preguntas)</button>
+                <button class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition quiz-option-btn" data-action="final">🏆 Examen Final (5 preguntas)</button>
                 <button class="px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition quiz-option-btn" data-action="explain">💬 Explica con tus palabras</button>
             </div>
         </div>
@@ -1726,12 +2606,14 @@ function showQuizOptions() {
     const buttons = div.querySelectorAll('.quiz-option-btn');
     buttons.forEach(btn => {
         btn.addEventListener('click', async (e) => {
-            // Desactivar ambos botones después del primer click
+            // Desactivar todos los botones después del primer click
             buttons.forEach(b => b.disabled = true);
             
             const action = e.target.dataset.action;
             if (action === 'quiz') {
                 startAutoQuiz();
+            } else if (action === 'final') {
+                startFinalQuiz();
             } else if (action === 'explain') {
                 startExplanationMode();
             }
@@ -1739,27 +2621,6 @@ function showQuizOptions() {
     });
     
     scrollToBottom();
-}
-
-/**
- * Inicia el modo de quiz automático
- */
-async function startAutoQuiz() {
-    isInQuizMode = true;
-    send.setAttribute('disabled', '');
-    send.classList.add('disabled');
-    
-    const topic = chats[currentChatId].title || 'el tema';
-    const quizzes = await generateAutoQuiz(topic);
-    
-    if (quizzes.length === 0) {
-        addMessage('No pude generar las preguntas. Intenta de nuevo.', 'assistant', null, new Date().toISOString());
-        isInQuizMode = false;
-        updateSendState();
-        return;
-    }
-    
-    renderAutoQuiz(quizzes);
 }
 
 // ======== GESTIÓN DE MODAL DE CONFIRMACIÓN ========
@@ -1770,9 +2631,7 @@ let pendingDeleteId = null;
  */
 function showConfirmModal() {
     const modal = document.getElementById('confirmModal');
-    // Remover overflow antes de mostrar
-    document.documentElement.style.overflow = 'hidden';
-    document.body.style.overflow = 'hidden';
+    // No modificar overflow - CSS ya maneja con scrollbar-gutter: stable
     // Scroll al top
     window.scrollTo(0, 0);
     // Mostrar modal
@@ -1793,9 +2652,7 @@ function closeConfirmModal() {
     const modal = document.getElementById('confirmModal');
     modal.classList.remove('show');
     pendingDeleteId = null;
-    // Restaurar scroll
-    document.documentElement.style.overflow = 'auto';
-    document.body.style.overflow = 'auto';
+    // No restaurar overflow - CSS maneja con scrollbar-gutter: stable
 }
 
 /**
@@ -1814,17 +2671,27 @@ function confirmDelete() {
         renderMessages();
         document.querySelector('.modal-message').textContent = '¿Estás seguro de que deseas eliminar este chat? Esta acción no se puede deshacer.';
     } else {
-        // Eliminar un chat específico
+        // Eliminar un chat específico - finalizar su título antes de eliminarlo
         const id = pendingDeleteId;
-        delete chats[id];
+        
+        // Si es el chat actual, finalizar el título antes de eliminarlo
         if (id === currentChatId) {
-            const keys = Object.keys(chats);
-            currentChatId = keys.length ? keys[0] : Date.now().toString();
-            if (!chats[currentChatId]) chats[currentChatId] = { messages: [], title: 'Nuevo Chat', createdAt: new Date().toISOString() };
+            messages = chats[id].messages;
+            finalizeChatTitle().then(() => {
+                delete chats[id];
+                const keys = Object.keys(chats);
+                currentChatId = keys.length ? keys[0] : Date.now().toString();
+                if (!chats[currentChatId]) chats[currentChatId] = { messages: [], title: 'Nuevo Chat', createdAt: new Date().toISOString() };
+                saveChats();
+                renderChatList();
+                renderMessages();
+            });
+        } else {
+            delete chats[id];
+            saveChats();
+            renderChatList();
+            renderMessages();
         }
-        saveChats();
-        renderChatList();
-        renderMessages();
     }
     closeConfirmModal();
 }
