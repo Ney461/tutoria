@@ -1065,7 +1065,7 @@ async function sendMessage(userChoice) {
         // Mostrar error amable al usuario en el chat
         let errorMsg = "❌ Hubo un error procesando tu mensaje. ";
         if (err.message.includes('API') || err.message.includes('network')) {
-            errorMsg += "Estamos presentando fallos, intenta de nuevo en unos breves minutos :D";
+            errorMsg += "Estamos teniendo algunos fallos, intenta nuevamente en unos minutos 😅";
         } else if (err.message.includes('OCR')) {
             errorMsg += "Error en el reconocimiento de imagen. Intenta con otra imagen.";
         } else {
@@ -2852,3 +2852,4 @@ input.addEventListener('keydown', () => {
 document.body.style.overflow = 'hidden';
 
 document.documentElement.style.overflow = 'hidden';
+
