@@ -4,7 +4,7 @@
    ============================================ */
 
 // CONFIGURACIÓN
-const MODEL = "x-ai/grok-4.1-fast:free";
+const MODEL = "x-ai/grok-4.1-fast";
 
 const SYSTEM_PROMPT = `Eres TutorIA, tutor socrático pedagógico experto. Tu objetivo: que el estudiante ENTIENDA de verdad.
 
