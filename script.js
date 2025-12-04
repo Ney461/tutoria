@@ -4,7 +4,7 @@
    ============================================ */
 
 // CONFIGURACIÓN
-const MODEL = "meta-llama/llama-2-70b-chat";
+const MODEL = "x-ai/grok-4.1-fast";
 
 const SYSTEM_PROMPT = `Eres TutorIA, tutor socrático pedagógico experto. Tu objetivo: que el estudiante ENTIENDA de verdad.
 
@@ -2852,4 +2852,5 @@ input.addEventListener('keydown', () => {
 document.body.style.overflow = 'hidden';
 
 document.documentElement.style.overflow = 'hidden';
+
 
