@@ -821,7 +821,7 @@ async function sendMessage(userChoice) {
             model: MODEL,
             messages: allMessages,
             temperature: 0.6,
-            max_tokens: 500,
+            max_tokens: 400,
             top_p: 0.8,
             frequency_penalty: 0,
             presence_penalty: 0
@@ -2772,4 +2772,5 @@ input.addEventListener('focus', () => {
 // Detectar también cuando el usuario empieza a escribir
 input.addEventListener('keydown', () => {
     messagesArea.scrollTop = messagesArea.scrollHeight;
+
 });
