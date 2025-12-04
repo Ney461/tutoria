@@ -4,7 +4,7 @@
    ============================================ */
 
 // CONFIGURACIÓN
-const MODEL = "x-ai/grok-4.1-fast";
+const MODEL = "meta-llama/llama-2-70b-chat";
 
 const SYSTEM_PROMPT = `Eres TutorIA, tutor socrático pedagógico experto. Tu objetivo: que el estudiante ENTIENDA de verdad.
 
@@ -235,6 +235,8 @@ createStars();
 /**
  * Verifica si el usuario ya tiene nombre guardado y lo carga
  */
+let hasValidatedName = false; // ✅ DECLARAR AQUÍ PRIMERO
+
 if(userName && userName.trim().length > 0) {
     hasValidatedName = true; // Marcar como ya validado si hay nombre guardado
     startApp(userName);
@@ -246,8 +248,6 @@ if(userName && userName.trim().length > 0) {
 /**
  * Valida el input del nombre y habilita/deshabilita el botón
  */
-let hasValidatedName = false; // Bandera de seguridad
-
 function validateNameInput() {
     const name = nameInput.value.trim();
     if (name.length >= 1) {
@@ -317,9 +317,16 @@ function startApp(name) {
     
     // ✅ Agregar clase unlocked para permitir interacción
     app.classList.add('unlocked');
+    app.classList.remove('hidden'); // ✅ Remover clase hidden
     
+    // ✅ DESAPARECER welcome completamente
     welcome.classList.add('hidden');
-    app.classList.remove('hidden');
+    welcome.style.display = 'none !important';
+    welcome.style.visibility = 'hidden';
+    welcome.style.opacity = '0';
+    welcome.style.pointerEvents = 'none';
+    welcome.style.zIndex = '-1';
+    
     greetingName.textContent = name;
     
     // Agregar mensaje de bienvenida de TutorIA
@@ -882,7 +889,7 @@ async function sendMessage(userChoice) {
             model: MODEL,
             messages: allMessages,
             temperature: 0.6,
-            max_tokens: 400,
+            max_tokens: 250,
             top_p: 0.8,
             frequency_penalty: 0,
             presence_penalty: 0
@@ -928,7 +935,7 @@ async function sendMessage(userChoice) {
                         model: MODEL,
                         messages: allMessages,
                         temperature: 0.5,
-                        max_tokens: 300,
+                        max_tokens: 250,
                         top_p: 0.9,
                         frequency_penalty: 0,
                         presence_penalty: 0
@@ -1036,10 +1043,11 @@ async function sendMessage(userChoice) {
         
         // ✅ NUEVA LÓGICA: Después de 7 mensajes de IA, ofrecer quiz final o explicación
         if (exchangeCount === 7 && !isInQuizMode && !isShowingQuizOptions && !quizFinalized) {
-            console.log('🎯 [QUIZ FINAL] ¡Momento para ofrecer quiz definitivo o explicación!');
+            console.log('🎯 [QUIZ FINAL] ¡Momento para el quiz definitivo!');
+            // Ya no ofrecemos opciones, vamos directo al quiz
             isShowingQuizOptions = true;
             setTimeout(() => {
-                showFinalQuizOrExplanationOptions();
+                startFinalQuiz();
             }, 1000);
         }
         
@@ -2486,8 +2494,10 @@ Mantén un tono educativo y amigable. No hagas un nuevo quiz, solo sigue enseña
 }
 
 /**
- * Muestra opciones de Quiz Final o Explicación después de 7 mensajes de IA
+ * [DEPRECATED] Esta función ya no se usa - Se pasa directo al quiz final
+ * Se mantiene comentada por compatibilidad
  */
+/*
 function showFinalQuizOrExplanationOptions() {
     const div = document.createElement('div');
     div.className = 'message flex justify-start animate-slide-up';
@@ -2533,6 +2543,7 @@ function showFinalQuizOrExplanationOptions() {
     
     scrollToBottom();
 }
+*/
 
 /**
  * Muestra opciones después de completar un quiz
@@ -2784,53 +2795,59 @@ document.addEventListener('click', function(e) {
  * cuando el teclado aparece en mobile
  */
 function scrollToBottomAggressive() {
+    // SOLO scroll dentro del messagesArea, NO en la página
     requestAnimationFrame(() => {
-        // Scroll en el contenedor de mensajes
-        messagesArea.scrollTop = messagesArea.scrollHeight + 200;
-        // Scroll en la página
-        window.scrollTo(0, document.body.scrollHeight);
-        // Asegurar que se vea el input
-        const input = document.getElementById('input');
-        if (input) {
-            input.scrollIntoView({ behavior: 'smooth', block: 'end' });
-        }
+        messagesArea.scrollTop = messagesArea.scrollHeight;
     });
 }
 
 let lastViewportHeight = window.innerHeight;
 
+// PREVENIR que el body/html se scrollee
 window.addEventListener('resize', () => {
     const currentHeight = window.innerHeight;
     
-    // Si la altura cambió más de 50px, probablemente es por el teclado
+    // Si la altura cambió, es probablemente por el teclado
     if (currentHeight < lastViewportHeight - 50) {
-        // Teclado apareció (altura disminuyó)
-        console.log('⌨️ [TECLADO] Teclado detectado en pantalla (resize)');
-        setTimeout(() => {
-            scrollToBottomAggressive();
-        }, 100);
+        console.log('⌨️ [TECLADO] Teclado detectado - Previniendo scroll de página');
+        // Prevenir scroll del body
+        document.body.style.overflow = 'hidden';
+        document.documentElement.style.overflow = 'hidden';
+        // Scroll solo en messagesArea
+        messagesArea.scrollTop = messagesArea.scrollHeight;
     }
     
     lastViewportHeight = currentHeight;
 });
 
-// Detectar con visualviewport (más confiable en algunos móviles)
+// Detectar con visualviewport
 if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', () => {
-        console.log('⌨️ [TECLADO] Cambio en visualViewport detectado');
-        setTimeout(() => {
-            scrollToBottomAggressive();
-        }, 100);
+        console.log('⌨️ [TECLADO] Teclado detectado (visualViewport)');
+        document.body.style.overflow = 'hidden';
+        document.documentElement.style.overflow = 'hidden';
+        messagesArea.scrollTop = messagesArea.scrollHeight;
     });
 }
 
-// Detectar focus en el input INMEDIATAMENTE
+// Cuando el input recibe focus, scroll solo en messagesArea
 input.addEventListener('focus', () => {
-    console.log('⌨️ [INPUT] Focus detectado - Haciendo scroll hacia abajo');
-    scrollToBottomAggressive();
+    console.log('⌨️ [INPUT] Focus detectado');
+    // Prevenir scroll del body
+    document.body.style.overflow = 'hidden !important';
+    document.documentElement.style.overflow = 'hidden !important';
+    // Scroll en el messagesArea
+    setTimeout(() => {
+        messagesArea.scrollTop = messagesArea.scrollHeight;
+    }, 300);
 });
 
-// Detectar también cuando el usuario empieza a escribir
+// Cuando escribe, scroll dentro de messagesArea
 input.addEventListener('keydown', () => {
+    document.body.style.overflow = 'hidden';
     messagesArea.scrollTop = messagesArea.scrollHeight;
 });
+
+// FUERZA: Asegurar que body/html nunca tengan scroll
+document.body.style.overflow = 'hidden';
+document.documentElement.style.overflow = 'hidden';
