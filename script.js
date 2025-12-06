@@ -889,7 +889,7 @@ async function sendMessage(userChoice) {
             model: MODEL,
             messages: allMessages,
             temperature: 0.6,
-            max_tokens: 250,
+            max_tokens: 330,
             top_p: 0.8,
             frequency_penalty: 0,
             presence_penalty: 0
@@ -935,7 +935,7 @@ async function sendMessage(userChoice) {
                         model: MODEL,
                         messages: allMessages,
                         temperature: 0.5,
-                        max_tokens: 250,
+                        max_tokens: 330,
                         top_p: 0.9,
                         frequency_penalty: 0,
                         presence_penalty: 0
@@ -1065,7 +1065,7 @@ async function sendMessage(userChoice) {
         // Mostrar error amable al usuario en el chat
         let errorMsg = "❌ Hubo un error procesando tu mensaje. ";
         if (err.message.includes('API') || err.message.includes('network')) {
-            errorMsg += "Estamos teniendo algunos fallos, intenta nuevamente en unos minutos 😅";
+            errorMsg += "Verifica tu conexión a internet y intenta de nuevo.";
         } else if (err.message.includes('OCR')) {
             errorMsg += "Error en el reconocimiento de imagen. Intenta con otra imagen.";
         } else {
@@ -1821,7 +1821,7 @@ Responde SOLO en el formato exacto especificado.`;
                     }
                 ],
                 temperature: 0.6,
-                max_tokens: 500
+                max_tokens: 550
             })
         });
 
@@ -1981,7 +1981,7 @@ Responde SOLO en el formato exacto especificado.`;
                     }
                 ],
                 temperature: 0.6,
-                max_tokens: 1200
+                max_tokens: 1280
             })
         });
 
@@ -2354,7 +2354,7 @@ Sé empático y motivador. Usa emojis ocasionales. Responde de forma conversacio
                     }
                 ],
                 temperature: 0.6,
-                max_tokens: 150
+                max_tokens: 310
             })
         });
 
@@ -2464,7 +2464,7 @@ Mantén un tono educativo y amigable. No hagas un nuevo quiz, solo sigue enseña
                         { role: 'user', content: continuationPrompt }
                     ],
                     temperature: 0.7,
-                    max_tokens: 600
+                    max_tokens: 690
                 })
             });
             
@@ -2850,7 +2850,4 @@ input.addEventListener('keydown', () => {
 
 // FUERZA: Asegurar que body/html nunca tengan scroll
 document.body.style.overflow = 'hidden';
-
 document.documentElement.style.overflow = 'hidden';
-
-
