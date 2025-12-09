@@ -18,15 +18,15 @@ ESTRATEGIA:
 ⚠️ IMPORTANTE - REGLAS SOBRE QUIZES:
 - NUNCA generes opciones de respuesta en texto (A), B), C), D))
 - NUNCA muestres preguntas con opciones literales en tu respuesta
-- Solo sugiere: "¿Quieres hacer un Quiz rápido para practicar?"
+- NUNCA sugiere o preguntes por quiz - el sistema los lanza automáticamente
 - NO des opciones de múltiple opción en texto - las opciones son interactivas en la app
 - El sistema mostrará automáticamente los quizes con radio buttons
 
 IMPORTANTE - NO APURES:
 - Responde en 5-7 líneas máximo (no cortado)
 - USA emojis ocasionales para hacer ameno
-- DESPUÉS DE 2-3 INTERCAMBIOS: pregunta "¿Quieres hacer un Quiz rápido para practicar o prefieres una Explicación?"
-- Solo ofrece Quiz/Explicación cuando el estudiante ya entienda bien el tema
+- NO preguntes si quiere quiz: el sistema lo lanzará automáticamente en el momento correcto
+- Solo enfócate en enseñar bien
 
 Tono: Paciente, empático, motivador. Eres su profe, no Wikipedia.`;
 
@@ -87,6 +87,7 @@ function rotateApiKey() {
         currentKeyIndex = 0;
         console.log('♻️ [API KEYS] Lista reiniciada desde la original');
         console.log(`📧 [CORREO ACTIVO] ${getCurrentEmail()}`);
+        console.log(`📊 [API KEYS] Pool actualizado con ${API_KEYS_POOL.length} claves activas`);
         return true;
     }
     console.log(`🔄 [API KEYS] Rotando a la siguiente API key. Índice actual: ${currentKeyIndex + 1}/${API_KEYS_POOL.length}`);
@@ -109,14 +110,23 @@ function invalidateCurrentKey(errorCode) {
     // Eliminar esta clave del pool
     API_KEYS_POOL.splice(currentKeyIndex, 1);
     
-    // No incrementar índice porque ya eliminámos el elemento
-    // La siguiente key estará en el mismo índice
-    if (currentKeyIndex >= API_KEYS_POOL.length && API_KEYS_POOL.length > 0) {
-        currentKeyIndex = 0;
-        console.log('🔄 [API KEYS] Reiniciando índice a 0');
-    }
-    
     console.log(`✅ [API KEYS] Clave eliminada. Pool restante: ${API_KEYS_POOL.length} claves`);
+    
+    // Si se agotó el pool, reiniciar desde la original
+    if (API_KEYS_POOL.length === 0) {
+        console.warn('⚠️ [API KEYS] Pool vacío! Reiniciando desde la original...');
+        API_KEYS_POOL = JSON.parse(JSON.stringify(API_KEYS_ORIGINAL));
+        currentKeyIndex = 0;
+        console.log('♻️ [API KEYS] Pool reiniciado. Intentando con primera clave nuevamente.');
+        console.log(`📊 [API KEYS] Pool ahora tiene ${API_KEYS_POOL.length} claves`);
+    } else {
+        // No incrementar índice porque ya eliminamos el elemento
+        // La siguiente key estará en el mismo índice
+        if (currentKeyIndex >= API_KEYS_POOL.length) {
+            currentKeyIndex = 0;
+            console.log('🔄 [API KEYS] Reiniciando índice a 0');
+        }
+    }
     
     // Mostrar nueva clave activa si hay disponible
     if (API_KEYS_POOL.length > 0) {
@@ -961,10 +971,17 @@ async function sendMessage(userChoice) {
                         throw new Error(`All API keys invalid (Error ${res.status})`);
                     }
                 } else if (!res.ok) {
-                    // Otros errores (500, etc) - intentar una vez más
-                    console.warn(`⚠️ [OPENROUTER] Error temporal (${res.status}). Reintentando...`);
+                    // Otros errores (500, 503, 429, timeout, etc) - intentar con siguiente key
+                    console.warn(`⚠️ [OPENROUTER] Error ${res.status}. Intentando con siguiente API key...`);
+                    invalidateCurrentKey(res.status);
                     retryCount++;
-                    continue;
+                    
+                    // Si aún hay keys disponibles, reintentar
+                    if (API_KEYS_POOL.length > 0) {
+                        continue;
+                    } else {
+                        throw new Error(`API error ${res.status} - no more keys available`);
+                    }
                 } else {
                     // Éxito
                     console.log('✅ [OPENROUTER] Conexión exitosa');
@@ -972,12 +989,16 @@ async function sendMessage(userChoice) {
                 }
             } catch (fetchErr) {
                 console.error('❌ [OPENROUTER] Error en fetch:', fetchErr.message);
+                console.warn('🔄 [OPENROUTER] Rotando a siguiente API key...');
+                invalidateCurrentKey(0);
                 retryCount++;
-                if (retryCount >= maxRetries) {
+                
+                if (retryCount >= maxRetries || API_KEYS_POOL.length === 0) {
                     throw fetchErr;
                 }
-                console.log(`⏱️ [OPENROUTER] Reintentando en 1 segundo...`);
-                await new Promise(resolve => setTimeout(resolve, 1000)); // Esperar 1 segundo antes de reintentar
+                
+                console.log(`⏱️ [OPENROUTER] Reintentando en 500ms...`);
+                await new Promise(resolve => setTimeout(resolve, 500));
             }
         }
 
@@ -1062,16 +1083,8 @@ async function sendMessage(userChoice) {
         console.error('❌ [ERROR STACK]:', err.stack);
         removeTyping();
         
-        // Mostrar error amable al usuario en el chat
-        let errorMsg = "❌ Hubo un error procesando tu mensaje. ";
-        if (err.message.includes('API') || err.message.includes('network')) {
-            errorMsg += "Verifica tu conexión a internet y intenta de nuevo.";
-        } else if (err.message.includes('OCR')) {
-            errorMsg += "Error en el reconocimiento de imagen. Intenta con otra imagen.";
-        } else {
-            errorMsg += "Por favor, intenta de nuevo.";
-        }
-        
+        // Mostrar ÚNICO mensaje de error para API/conexión
+        const errorMsg = "Tenemos problemas en este momento. Por favor, reinicia la aplicación y vuelve a intentarlo en unos minutos.";
         addMessage(errorMsg, 'assistant', null, new Date().toISOString());
     } finally {
         // SIEMPRE re-activar el botón al final
@@ -2081,7 +2094,7 @@ async function startAutoQuiz() {
         return;
     }
     
-    addMessage('Aquí están tus 2 preguntas. ¡Veamos cuánto aprendiste! 📋', 'assistant', null, new Date().toISOString());
+    addMessage('A continuación, un Quiz Rápido:', 'assistant', null, new Date().toISOString());
     setTimeout(() => renderAutoQuiz(quizzes), 500);
 }
 
@@ -2634,7 +2647,7 @@ async function startFinalQuiz() {
         return;
     }
     
-    addMessage('¡Aquí viene tu examen final con 5 preguntas! Demuestra todo lo que aprendiste. 📚', 'assistant', null, new Date().toISOString());
+    addMessage('A continuación, el Quiz Final:', 'assistant', null, new Date().toISOString());
     setTimeout(() => renderFinalQuiz(quizzes), 500);
 }
 
