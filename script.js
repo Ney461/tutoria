@@ -48,6 +48,38 @@ const API_KEYS_ORIGINAL = [
     {
         key: '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',
         email: 'andresburgo38@gmail.com'
+    },
+    {
+        key: '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',
+        email: 'tutoria649@gmail.com'
+    },
+    {
+        key: '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',
+        email: 'tutoriaaa81@gmail.com'
+    },
+    {
+        key: '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',
+        email: 'neymer204@gmail.com'
+    },
+    {
+        key: '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',
+        email: 'eltecladopro@gmail.com'
+    },
+    {
+        key: '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',
+        email: 'rosaduchilozano@gmail.com'
+    },
+    {
+        key: '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',
+        email: 'neyivanmunozduchi@gmail.com'
+    },
+    {
+        key: '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',
+        email: 'tutoria719@gmail.com'
+    },
+    {
+        key: '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',
+        email: 'jhoncaleb111@gmail.com'
     }
 ];
 
